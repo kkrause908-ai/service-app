@@ -16,7 +16,7 @@ services:
   backend:
     build: .
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       DATABASE_URL: "postgresql://user:pass@postgres:5432/service_app?sslmode=disable"
       NODE_ENV: "production"
