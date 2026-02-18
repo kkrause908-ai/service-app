@@ -4,18 +4,31 @@ const cors = require('cors');
 const { Pool } = require('pg');
 
 const app = express();
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
-
 app.use(cors());
 app.use(express.json());
 
-// Health
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://user:pass@localhost:5432/service_app',
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// Auto-create table on start
+pool.query(`
+  CREATE TABLE IF NOT EXISTS tasks (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    fault TEXT,
+    repair_procedure TEXT,
+    status VARCHAR(50) DEFAULT 'nowe',
+    assigned_to VARCHAR(100),
+    assigned_by VARCHAR(100) DEFAULT 'kierownik',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`).then(() => console.log('Table ready')).catch(console.error);
+
 app.get('/health', (req, res) => res.json({ status: 'OK' }));
 
-// Tasks CRUD
 app.get('/tasks', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM tasks ORDER BY created_at DESC');
@@ -26,22 +39,22 @@ app.get('/tasks', async (req, res) => {
 });
 
 app.post('/tasks', async (req, res) => {
+  const { title, description, assigned_to } = req.body;
   try {
-    const { title, description, assigned_to } = req.body;
     const result = await pool.query(
-      "INSERT INTO tasks (title, description, status, assigned_to) VALUES ($1, $2, 'nowe', $3) RETURNING id",
+      "INSERT INTO tasks(title, description, assigned_to, status) VALUES($1, $2, $3, 'nowe') RETURNING id",
       [title, description, assigned_to]
     );
-    res.json({ id: result.rows[0].id });
+    res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 app.put('/tasks/:id', async (req, res) => {
+  const id = req.params.id;
+  const { status, fault, repair_procedure } = req.body;
   try {
-    const id = req.params.id;
-    const { status, fault, repair_procedure } = req.body;
     await pool.query(
       'UPDATE tasks SET status=$1, fault=$2, repair_procedure=$3 WHERE id=$4',
       [status, fault, repair_procedure, id]
@@ -53,4 +66,4 @@ app.put('/tasks/:id', async (req, res) => {
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server on port ${port}`));
+app.listen(port, () => console.log(`Server running on port ${port}`));

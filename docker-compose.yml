@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
@@ -9,8 +8,10 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U user -d service_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: .
@@ -18,6 +19,7 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: "postgresql://user:pass@postgres:5432/service_app?sslmode=disable"
+      NODE_ENV: "production"
     depends_on:
       postgres:
         condition: service_healthy
