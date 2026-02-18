@@ -1,9 +1,7 @@
-FROM node:20-alpine
+FROM node:20-slim
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production --no-optional && npm cache clean --force
+COPY package.json ./
+RUN npm install --production --no-optional --legacy-peer-deps && npm cache clean --force
 COPY . .
-RUN chown -R node:node /app
-USER node
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
