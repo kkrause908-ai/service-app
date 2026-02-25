@@ -8,7 +8,7 @@
 </head>
 <body>
   <main class="auth">
-    <h1>Zarejestruj konto</h1>
+    <h1>Utwórz konto</h1>
     <form id="registerForm">
       <label>Nazwa użytkownika
         <input type="text" name="username" required>
@@ -22,9 +22,9 @@
           <option value="admin">Administrator</option>
         </select>
       </label>
-      <button type="submit">Zarejestruj</button>
+      <div class="formActions"><button type="submit">Zarejestruj</button></div>
     </form>
-    <p id="msg"></p>
+    <p id="msg" class="muted"></p>
     <p><a href="/login.html">Masz konto? Zaloguj się</a></p>
   </main>
   <script src="/register.js" defer></script>

@@ -11,8 +11,8 @@
       const json = await res.json();
       if(!res.ok) throw new Error(json.error || 'Błąd logowania');
       localStorage.setItem('token', json.token);
-      msg.textContent = 'Zalogowano';
-      window.location.href = '/dashboard.html';
+      msg.textContent = 'Zalogowano — przekierowanie...';
+      setTimeout(()=> window.location.href = '/dashboard.html', 600);
     }catch(err){
       msg.textContent = err.message;
     }

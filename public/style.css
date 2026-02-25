@@ -47,6 +47,14 @@ li{margin:0.25rem 0;padding:0.5rem;border:1px solid #e6e9ef;border-radius:6px}
 .row select{padding:0.5rem;border-radius:8px}
 .row button{padding:0 0.75rem;border-radius:8px;background:var(--lux4);color:var(--lux3);border:none}
 
+/* create form map */
+.createMap{height:200px;border-radius:8px;border:1px solid rgba(16,68,71,0.06);margin:0.5rem 0}
+
+.field{display:block;margin-bottom:0.5rem}
+.field input,.field textarea{width:100%}
+.field .error{display:block;color:var(--lux1);font-size:0.9rem;margin-top:0.25rem}
+.formActions{margin-top:0.5rem}
+
 /* Buttons */
 button{background:#0366d6;color:#fff;border:none;padding:0.5rem 1rem;border-radius:6px;cursor:pointer}
 button:hover{opacity:0.95}

@@ -11,7 +11,7 @@
       const json = await res.json();
       if(!res.ok) throw new Error(json.error || 'Błąd rejestracji');
       msg.textContent = 'Zarejestrowano. Przekierowanie do logowania...';
-      setTimeout(()=>window.location.href='/login.html', 1200);
+      setTimeout(()=>window.location.href='/login.html', 900);
     }catch(err){
       msg.textContent = err.message;
     }
