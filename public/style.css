@@ -7,3 +7,23 @@ button:hover{opacity:0.95}
 pre{background:#f3f4f6;padding:1rem;border-radius:6px}
 ul{padding-left:1rem}
 li{margin:0.25rem 0;padding:0.5rem;border:1px solid #e6e9ef;border-radius:6px}
+
+/* Auth page */
+.auth{max-width:420px;margin:3rem auto;padding:2rem;background:#fff;border-radius:8px}
+.auth form{display:flex;flex-direction:column;gap:0.5rem}
+.auth input,.auth textarea{padding:0.5rem;border:1px solid #ddd;border-radius:6px}
+
+/* Dashboard layout */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;background:#0366d6;color:#fff}
+.container{display:flex;gap:1rem;padding:1rem;max-width:1100px;margin:1rem auto}
+.sidebar{width:320px}
+.sidebar ul{max-height:60vh;overflow:auto}
+.content{flex:1}
+.map{height:320px;background:#eef}
+
+/* Responsive */
+@media (max-width:800px){
+	.container{flex-direction:column;padding:0.5rem}
+	.sidebar{width:100%}
+	.map{height:240px}
+}

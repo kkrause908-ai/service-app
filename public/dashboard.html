@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Service App — Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+e2kQm0aZb8g+vY3j0q9Jm0bZr7EtQ1VYx3fQtmM0=" crossorigin=""/>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Service App</h1>
+    <div>
+      <span id="who"></span>
+      <button id="logout">Wyloguj</button>
+    </div>
+  </header>
+  <main class="container">
+    <aside class="sidebar">
+      <button id="refresh">Odśwież</button>
+      <ul id="tasksList"></ul>
+      <div id="createBox" style="display:none">
+        <h3>Nowe zlecenie</h3>
+        <form id="createForm">
+          <input name="title" placeholder="Tytuł" required>
+          <input name="assigned_to" placeholder="Przypisz do (username)">
+          <input name="address" placeholder="Adres">
+          <input name="lat" placeholder="Lat" type="number" step="any">
+          <input name="lng" placeholder="Lng" type="number" step="any">
+          <textarea name="description" placeholder="Opis"></textarea>
+          <button type="submit">Utwórz</button>
+        </form>
+      </div>
+    </aside>
+    <section class="content">
+      <div id="taskDetail">
+        <h2 id="taskTitle">Wybierz zadanie</h2>
+        <p id="taskMeta"></p>
+        <p id="taskDesc"></p>
+        <div id="map" class="map"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j8k8b4oXrKXkKp2Rk8s+7YjCqD1q0rDgQ1jvM5s=" crossorigin=""></script>
+  <script src="/dashboard.js" defer></script>
+</body>
+</html>
