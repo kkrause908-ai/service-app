@@ -11,17 +11,11 @@
   const taskMeta = document.getElementById('taskMeta');
   const taskDesc = document.getElementById('taskDesc');
   const mapEl = document.getElementById('map');
-  const createBox = document.getElementById('createBox');
-  const createForm = document.getElementById('createForm');
-
   const openMapBtn = document.getElementById('openMap');
   const genPdfBtn = document.getElementById('genPdf');
-  const findAddrBtn = document.getElementById('findAddr');
-  const createMapEl = document.getElementById('createMap');
 
   let map, marker;
   let currentTask = null;
-  let createMap, createMarker;
 
   logoutBtn.addEventListener('click', ()=>{ localStorage.removeItem('token'); window.location.href = '/login.html'; });
   refresh.addEventListener('click', loadTasks);
@@ -32,7 +26,6 @@
       const json = await res.json();
       if(!res.ok) throw new Error(json.error||'Błąd');
       who.textContent = json.username + ' (' + json.role + ')';
-      if(json.role === 'admin') createBox.style.display = 'block';
     }catch(e){
       console.error(e); localStorage.removeItem('token'); window.location.href='/login.html';
     }
@@ -116,90 +109,7 @@
     }catch(e){ alert('Błąd: '+e.message); }
   });
 
-  // geocode address (Nominatim) for create form
-  // initialize mini create map when createBox is shown
-  function ensureCreateMap(){
-    if(createMap) return;
-    try{
-      createMap = L.map(createMapEl).setView([50.061, 19.937], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(createMap);
-      createMap.on('click', (e)=>{
-        const {lat,lng} = e.latlng;
-        if(!createMarker) createMarker = L.marker([lat,lng]).addTo(createMap);
-        else createMarker.setLatLng([lat,lng]);
-        createForm.querySelector('input[name="lat"]').value = lat.toFixed(6);
-        createForm.querySelector('input[name="lng"]').value = lng.toFixed(6);
-      });
-    }catch(e){ console.warn('Leaflet init failed', e); }
-  }
-
-  findAddrBtn && findAddrBtn.addEventListener('click', async ()=>{
-    const addr = (createForm.querySelector('input[name="address"]').value || '').trim();
-    if(!addr) return showFieldError('address','Podaj adres');
-    try{
-      findAddrBtn.disabled = true;
-      findAddrBtn.textContent = 'Szukam...';
-      const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(addr));
-      const data = await res.json();
-      if(!Array.isArray(data) || data.length===0) return showFieldError('address','Nie znaleziono adresu');
-      const first = data[0];
-      const lat = parseFloat(first.lat), lon = parseFloat(first.lon);
-      createForm.querySelector('input[name="lat"]').value = lat.toFixed(6);
-      createForm.querySelector('input[name="lng"]').value = lon.toFixed(6);
-      ensureCreateMap();
-      createMap.setView([lat,lon],15);
-      if(!createMarker) createMarker = L.marker([lat,lon]).addTo(createMap);
-      else createMarker.setLatLng([lat,lon]);
-      clearFieldError('address');
-    }catch(e){ showFieldError('address','Błąd geokodowania'); }
-    finally{ findAddrBtn.disabled = false; findAddrBtn.textContent = 'Znajdź'; }
-  });
-
-  createForm && createForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    clearAllFieldErrors();
-    ensureCreateMap();
-    const fd = new FormData(createForm);
-    const body = {
-      title: fd.get('title'),
-      description: fd.get('description'),
-      assigned_to: fd.get('assigned_to'),
-      address: fd.get('address') || null,
-      lat: fd.get('lat') ? Number(fd.get('lat')) : null,
-      lng: fd.get('lng') ? Number(fd.get('lng')) : null
-    };
-    // client-side validation
-    let valid = true;
-    if(!body.title || body.title.trim().length < 3){ showFieldError('title','Tytuł jest wymagany (min 3 znaki)'); valid=false; }
-    const latVal = createForm.querySelector('input[name="lat"]').value.trim();
-    const lngVal = createForm.querySelector('input[name="lng"]').value.trim();
-    if((latVal && !lngVal) || (!latVal && lngVal)){ showFieldError('lat','Wprowadź obie współrzędne lub zostaw puste'); showFieldError('lng','Wprowadź obie współrzędne lub zostaw puste'); valid=false; }
-    if(!valid) return;
-    body.status = fd.get('status');
-    body.priority = fd.get('priority');
-    try{
-      const res = await fetch('/tasks', {method:'POST', headers, body:JSON.stringify(body)});
-      const json = await res.json();
-      if(!res.ok) throw new Error(json.error||'Błąd tworzenia');
-      loadTasks();
-      createForm.reset();
-      if(createMarker){ createMap.removeLayer(createMarker); createMarker = null; }
-    }catch(err){
-      alert('Błąd: '+err.message);
-    }
-  });
-
-  function showFieldError(name,msg){
-    const el = createForm.querySelector(`[data-for=\"${name}\"]`);
-    if(el) el.textContent = msg;
-  }
-  function clearFieldError(name){
-    const el = createForm.querySelector(`[data-for=\"${name}\"]`);
-    if(el) el.textContent = '';
-  }
-  function clearAllFieldErrors(){
-    createForm.querySelectorAll('.error').forEach(s=>s.textContent='');
-  }
+  // creation UI moved to separate page
 
   // init
   loadMe();

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Utwórz zlecenie — Service App</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Service App</h1>
+    <nav class="menu">
+      <a href="/dashboard.html">Dashboard</a>
+      <a href="/create.html">Utwórz zlecenie</a>
+    </nav>
+    <div>
+      <span id="who"></span>
+      <button id="logout">Wyloguj</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <aside class="sidebar" style="width:380px">
+      <h3>Nowe zlecenie</h3>
+      <form id="createForm">
+        <label class="field">Tytuł
+          <input name="title" placeholder="Tytuł zlecenia" required>
+          <span class="error" data-for="title"></span>
+        </label>
+
+        <label class="field">Przypisz do
+          <input name="assigned_to" placeholder="Nazwa użytkownika" list="usersList">
+          <datalist id="usersList"></datalist>
+          <span class="error" data-for="assigned_to"></span>
+        </label>
+
+        <div class="row">
+          <label>Stan zlecenia
+            <select name="status">
+              <option value="utworzony">Utworzony</option>
+              <option value="w trakcie">W trakcie</option>
+              <option value="zakończony">Zakończony</option>
+              <option value="feedback">Feedback</option>
+            </select>
+          </label>
+          <label>Priorytet
+            <select name="priority">
+              <option value="high">Wysoki</option>
+              <option value="med" selected>Średni</option>
+              <option value="low">Niski</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="field">Adres (opcjonalnie)
+          <div class="row">
+            <input name="address" placeholder="Wpisz adres i kliknij Znajdź">
+            <button type="button" id="findAddr">Znajdź</button>
+          </div>
+          <span class="error" data-for="address"></span>
+        </label>
+
+        <div id="createMap" class="createMap">Mapa załaduje się poniżej — użyj przycisku "Znajdź" lub kliknij na mapie, by ustawić współrzędne.</div>
+
+        <div class="row">
+          <label>Lat
+            <input name="lat" placeholder="Lat" type="number" step="any">
+          </label>
+          <label>Lng
+            <input name="lng" placeholder="Lng" type="number" step="any">
+          </label>
+        </div>
+
+        <label class="field">Opis
+          <textarea name="description" placeholder="Opis zlecenia"></textarea>
+        </label>
+
+        <div class="formActions">
+          <button type="submit">Utwórz zlecenie</button>
+        </div>
+      </form>
+    </aside>
+    <section class="content">
+      <div id="createInfo">
+        <h2>Utwórz zlecenie</h2>
+        <p class="muted">Wypełnij formularz po lewej. Możesz wyszukać adres lub kliknąć na mapie, aby ustawić dokładną lokalizację.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="/create.js" defer></script>
+</body>
+</html>

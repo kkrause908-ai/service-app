@@ -10,6 +10,10 @@
 <body>
   <header class="topbar">
     <h1>Service App</h1>
+    <nav class="menu">
+      <a href="/dashboard.html">Dashboard</a>
+      <a href="/create.html">Utwórz zlecenie</a>
+    </nav>
     <div>
       <span id="who"></span>
       <button id="logout">Wyloguj</button>
@@ -35,37 +39,7 @@
           <div class="row">
             <label>Stan zlecenia
               <select name="status">
-                <option value="utworzony">Utworzony</option>
-                <option value="w trakcie">W trakcie</option>
-                <option value="zakończony">Zakończony</option>
-                <option value="feedback">Feedback</option>
-              </select>
-            </label>
-            <label>Priorytet
-              <select name="priority">
-                <option value="high">Wysoki</option>
-                <option value="med" selected>Średni</option>
-                <option value="low">Niski</option>
-              </select>
-            </label>
-          </div>
-
-          <label class="field">Adres (opcjonalnie)
-            <div class="row">
-              <input name="address" placeholder="Wpisz adres i kliknij Znajdź">
-              <button type="button" id="findAddr">Znajdź</button>
-            </div>
-            <span class="error" data-for="address"></span>
-          </label>
-
-          <div id="createMap" class="createMap">Załaduj mapę podczas edycji...</div>
-          <div class="row">
-            <label>Lat
-              <input name="lat" placeholder="Lat" type="number" step="any">
-            </label>
-            <label>Lng
-              <input name="lng" placeholder="Lng" type="number" step="any">
-            </label>
+            <!-- Creation moved to separate page -->
           </div>
 
           <label class="field">Opis
