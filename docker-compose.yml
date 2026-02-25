@@ -20,6 +20,9 @@ services:
     environment:
       DATABASE_URL: "postgresql://user:pass@postgres:5432/service_app?sslmode=disable"
       NODE_ENV: "production"
+      JWT_SECRET: "supersecret_dev_change_me"
+      # Optional: set ADMIN_PASSWORD to auto-create initial admin user
+      ADMIN_PASSWORD: "admin123"
     depends_on:
       postgres:
         condition: service_healthy
