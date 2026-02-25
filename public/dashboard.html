@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Service App — Dashboard</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+e2kQm0aZb8g+vY3j0q9Jm0bZr7EtQ1VYx3fQtmM0=" crossorigin=""/>
 </head>
 <body>
@@ -47,6 +48,31 @@
           <button id="genPdf">Generuj PDF</button>
         </div>
         <div id="map" class="map"></div>
+        <div class="photosArea">
+          <h4>Zdjęcia</h4>
+          <div id="photosList" class="photosList"></div>
+          <div class="uploadControls">
+            <input type="file" id="photoInput" accept="image/*">
+            <button id="uploadPhoto">Wyślij zdjęcie</button>
+          </div>
+        </div>
+
+        <div class="historyArea">
+          <h4>Historia</h4>
+          <ul id="history" class="historyList"></ul>
+        </div>
+
+        <div id="signatureModal" class="modal" style="display:none">
+          <div class="modalContent">
+            <h3>Podpisz</h3>
+            <canvas id="signCanvas" width="600" height="200" style="border:1px solid #ccc"></canvas>
+            <div class="modalActions">
+              <button id="saveSign">Zapisz</button>
+              <button id="clearSign">Wyczyść</button>
+              <button id="cancelSign">Anuluj</button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   </main>

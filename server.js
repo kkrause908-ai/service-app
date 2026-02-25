@@ -6,6 +6,8 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const PDFDocument = require('pdfkit');
+const multer = require('multer');
+const fs = require('fs');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret';
 
@@ -75,6 +77,29 @@ pool.query(`
     ADD COLUMN IF NOT EXISTS repair_short TEXT
   `).then(() => console.log('Tasks table ensured timing/signature columns')).catch(console.error);
 
+  // photos table
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS task_photos (
+      id SERIAL PRIMARY KEY,
+      task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      uploaded_by VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).then(()=>console.log('task_photos table ready')).catch(console.error);
+
+  // history table
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS task_history (
+      id SERIAL PRIMARY KEY,
+      task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+      username VARCHAR(100),
+      action TEXT,
+      details TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).then(()=>console.log('task_history table ready')).catch(console.error);
+
   // Seed admin user when ADMIN_PASSWORD provided
   if (process.env.ADMIN_PASSWORD) {
     (async () => {
@@ -112,7 +137,7 @@ app.get('/health', (req, res) => res.json({ status: 'OK' }));
 
 app.get('/tasks', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM tasks ORDER BY created_at DESC');
+    const result = await pool.query("SELECT *, EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds FROM tasks ORDER BY created_at DESC");
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -244,6 +269,21 @@ app.get('/tasks/:id/pdf', requireAuth, async (req, res) => {
       }catch(e){ console.warn('Could not render receiver signature', e); }
     }
 
+    // include photos if present
+    try{
+      const photos = await pool.query('SELECT filename FROM task_photos WHERE task_id=$1 ORDER BY created_at', [id]);
+      if(photos.rows.length){
+        doc.addPage();
+        doc.fontSize(14).text('Zdjęcia:', { underline: true });
+        for(const p of photos.rows){
+          const filePath = path.join(__dirname, 'public', 'uploads', p.filename);
+          if(fs.existsSync(filePath)){
+            try{ doc.addPage(); doc.image(filePath, { fit:[400,400], align:'center' }); }catch(e){ console.warn('Could not add photo to PDF', e); }
+          }
+        }
+      }
+    }catch(e){ console.warn('Photos to PDF failed', e); }
+
     doc.end();
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -257,6 +297,8 @@ app.post('/tasks', requireAuth, requireRole('admin'), async (req, res) => {
       "INSERT INTO tasks(title, description, assigned_to, status, priority, address, lat, lng) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
       [title, description, assigned_to, status || 'utworzony', priority || 'med', address || null, lat || null, lng || null]
     );
+    const id = result.rows[0].id;
+    await pool.query('INSERT INTO task_history(task_id, username, action, details) VALUES($1,$2,$3,$4)', [id, req.user.username, 'created', JSON.stringify({title,assigned_to})]);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -290,6 +332,7 @@ app.put('/tasks/:id', requireAuth, async (req, res) => {
       `UPDATE tasks SET status=$1, fault=$2, repair_procedure=$3, assigned_to=$4, address=$5, lat=$6, lng=$7, start_time=$8, end_time=$9, executor_signature=$10, receiver_signature=$11, repair_short=$12, priority=$13 WHERE id=$14`,
       [status || task.status, fault || task.fault, repair_procedure || task.repair_procedure, assigned_to || task.assigned_to, address || task.address, lat || task.lat, lng || task.lng, start_time || newStart, end_time || newEnd, executor_signature || task.executor_signature, receiver_signature || task.receiver_signature, repair_short || task.repair_short, priority || task.priority, id]
     );
+    await pool.query('INSERT INTO task_history(task_id, username, action, details) VALUES($1,$2,$3,$4)', [id, req.user.username, 'updated', JSON.stringify(req.body)]);
     res.json({ message: 'Updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -299,6 +342,38 @@ app.put('/tasks/:id', requireAuth, async (req, res) => {
 // Root: serve the frontend page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Upload photos
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if(!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const storage = multer.diskStorage({ destination: uploadDir, filename: (req,file,cb)=>{ cb(null, Date.now() + '-' + file.originalname); } });
+const upload = multer({ storage });
+
+app.post('/tasks/:id/photos', requireAuth, upload.single('photo'), async (req,res)=>{
+  const id = req.params.id;
+  if(!req.file) return res.status(400).json({ error: 'no file' });
+  try{
+    await pool.query('INSERT INTO task_photos(task_id, filename, uploaded_by) VALUES($1,$2,$3)', [id, req.file.filename, req.user.username]);
+    res.json({ filename: req.file.filename });
+  }catch(e){ res.status(500).json({ error: e.message }); }
+});
+
+app.get('/tasks/:id/photos', requireAuth, async (req,res)=>{
+  const id = req.params.id;
+  try{
+    const r = await pool.query('SELECT id, filename, uploaded_by, created_at FROM task_photos WHERE task_id=$1 ORDER BY created_at', [id]);
+    res.json(r.rows);
+  }catch(e){ res.status(500).json({ error: e.message }); }
+});
+
+// task history
+app.get('/tasks/:id/history', requireAuth, async (req,res)=>{
+  const id = req.params.id;
+  try{
+    const r = await pool.query('SELECT username, action, details, created_at FROM task_history WHERE task_id=$1 ORDER BY created_at DESC', [id]);
+    res.json(r.rows);
+  }catch(e){ res.status(500).json({ error: e.message }); }
 });
 
 const port = process.env.PORT || 3000;
