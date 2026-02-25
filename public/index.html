@@ -8,17 +8,18 @@
 </head>
 <body>
   <main>
-    <h1>Service App</h1>
-    <p>Witaj! To jest strona startowa Twojej aplikacji.</p>
+    <header class="hero">
+      <h1>Service CCTV — System zleceń serwisowych</h1>
+      <p>Prosty panel do zarządzania zleceniami serwisowymi dla techników mobilnych. Twórz zadania, przypisuj techników, przeglądaj lokalizacje i generuj protokoły PDF.</p>
+      <p>
+        <a class="btn" href="/login.html">Zaloguj się</a>
+        <a class="btn secondary" href="/register.html">Utwórz konto</a>
+      </p>
+    </header>
 
-    <section id="status">
-      <button id="checkHealth">Sprawdź zdrowie serwera</button>
-      <pre id="healthResult"></pre>
-    </section>
-
-    <section id="tasksSection">
-      <button id="loadTasks">Pobierz listę zadań</button>
-      <ul id="tasks"></ul>
+    <section class="intro">
+      <h2>O usłudze</h2>
+      <p>System umożliwia zarządzanie zleceniami instalacji i serwisu CCTV. Administratorzy mogą tworzyć i przypisywać zlecenia, technicy mogą aktualizować status i dodawać informacje o naprawie.</p>
     </section>
   </main>
   <script src="/app.js"></script>

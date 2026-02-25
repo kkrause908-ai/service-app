@@ -23,10 +23,29 @@
         <h3>Nowe zlecenie</h3>
         <form id="createForm">
           <input name="title" placeholder="Tytuł" required>
-          <input name="assigned_to" placeholder="Przypisz do (username)">
-          <input name="address" placeholder="Adres">
-          <input name="lat" placeholder="Lat" type="number" step="any">
-          <input name="lng" placeholder="Lng" type="number" step="any">
+          <input name="assigned_to" placeholder="Przypisz do (username)" list="usersList">
+          <datalist id="usersList"></datalist>
+          <div class="row">
+            <select name="status">
+              <option value="utworzony">Utworzony</option>
+              <option value="w trakcie">W trakcie</option>
+              <option value="zakończony">Zakończony</option>
+              <option value="feedback">Feedback</option>
+            </select>
+            <select name="priority">
+              <option value="high">High</option>
+              <option value="med" selected>Med</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div class="row">
+            <input name="address" placeholder="Adres">
+            <button type="button" id="findAddr">Znajdź</button>
+          </div>
+          <div class="row">
+            <input name="lat" placeholder="Lat" type="number" step="any">
+            <input name="lng" placeholder="Lng" type="number" step="any">
+          </div>
           <textarea name="description" placeholder="Opis"></textarea>
           <button type="submit">Utwórz</button>
         </form>
@@ -37,6 +56,10 @@
         <h2 id="taskTitle">Wybierz zadanie</h2>
         <p id="taskMeta"></p>
         <p id="taskDesc"></p>
+        <div class="detailActions">
+          <button id="openMap">Otwórz mapę</button>
+          <button id="genPdf">Generuj PDF</button>
+        </div>
         <div id="map" class="map"></div>
       </div>
     </section>

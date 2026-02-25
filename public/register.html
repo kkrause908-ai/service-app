@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Service App — Rejestracja</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="auth">
+    <h1>Zarejestruj konto</h1>
+    <form id="registerForm">
+      <label>Nazwa użytkownika
+        <input type="text" name="username" required>
+      </label>
+      <label>Hasło
+        <input type="password" name="password" required>
+      </label>
+      <label>Rola
+        <select name="role">
+          <option value="user">Użytkownik</option>
+          <option value="admin">Administrator</option>
+        </select>
+      </label>
+      <button type="submit">Zarejestruj</button>
+    </form>
+    <p id="msg"></p>
+    <p><a href="/login.html">Masz konto? Zaloguj się</a></p>
+  </main>
+  <script src="/register.js" defer></script>
+</body>
+</html>

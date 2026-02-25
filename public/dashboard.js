@@ -14,7 +14,12 @@
   const createBox = document.getElementById('createBox');
   const createForm = document.getElementById('createForm');
 
+  const openMapBtn = document.getElementById('openMap');
+  const genPdfBtn = document.getElementById('genPdf');
+  const findAddrBtn = document.getElementById('findAddr');
+
   let map, marker;
+  let currentTask = null;
 
   logoutBtn.addEventListener('click', ()=>{ localStorage.removeItem('token'); window.location.href = '/login.html'; });
   refresh.addEventListener('click', loadTasks);
@@ -50,10 +55,27 @@
     }
   }
 
+  async function loadUsers(){
+    try{
+      const res = await fetch('/users', { headers });
+      if(!res.ok) return;
+      const users = await res.json();
+      const datalist = document.getElementById('usersList');
+      if(!datalist) return;
+      datalist.innerHTML = '';
+      users.forEach(u=>{
+        const opt = document.createElement('option');
+        opt.value = u.username;
+        datalist.appendChild(opt);
+      });
+    }catch(e){ console.warn('Could not load users', e); }
+  }
+
   function showTask(t){
     taskTitle.textContent = t.title || 'Bez tytułu';
-    taskMeta.textContent = 'ID: ' + t.id + ' • Status: ' + (t.status||'');
+    taskMeta.textContent = 'ID: ' + t.id + ' • Status: ' + (t.status||'') + ' • Priority: ' + (t.priority||'');
     taskDesc.textContent = t.description || '';
+    currentTask = t;
     if(t.lat && t.lng){
       if(!map){
         map = L.map(mapEl).setView([t.lat, t.lng], 13);
@@ -69,6 +91,46 @@
     }
   }
 
+  openMapBtn && openMapBtn.addEventListener('click', ()=>{
+    if(!currentTask || !currentTask.lat || !currentTask.lng) return alert('Brak współrzędnych');
+    const url = `https://www.openstreetmap.org/?mlat=${currentTask.lat}&mlon=${currentTask.lng}#map=18/${currentTask.lat}/${currentTask.lng}`;
+    window.open(url, '_blank');
+  });
+
+  genPdfBtn && genPdfBtn.addEventListener('click', async ()=>{
+    if(!currentTask) return alert('Wybierz zadanie');
+    try{
+      const res = await fetch(`/tasks/${currentTask.id}/pdf`, { headers: { 'Authorization': 'Bearer ' + token } });
+      if(!res.ok){ const json = await res.json(); throw new Error(json.error||'Błąd generowania PDF'); }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `task-${currentTask.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }catch(e){ alert('Błąd: '+e.message); }
+  });
+
+  // geocode address (Nominatim) for create form
+  findAddrBtn && findAddrBtn.addEventListener('click', async ()=>{
+    const addr = (createForm.querySelector('input[name="address"]').value || '').trim();
+    if(!addr) return alert('Podaj adres');
+    try{
+      findAddrBtn.disabled = true;
+      findAddrBtn.textContent = 'Szukam...';
+      const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(addr));
+      const data = await res.json();
+      if(!Array.isArray(data) || data.length===0) return alert('Nie znaleziono');
+      const first = data[0];
+      createForm.querySelector('input[name="lat"]').value = parseFloat(first.lat).toFixed(6);
+      createForm.querySelector('input[name="lng"]').value = parseFloat(first.lon).toFixed(6);
+    }catch(e){ alert('Błąd geokodowania: '+e.message); }
+    finally{ findAddrBtn.disabled = false; findAddrBtn.textContent = 'Znajdź'; }
+  });
+
   createForm && createForm.addEventListener('submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(createForm);
@@ -76,6 +138,8 @@
       title: fd.get('title'),
       description: fd.get('description'),
       assigned_to: fd.get('assigned_to'),
+      status: fd.get('status'),
+      priority: fd.get('priority'),
       address: fd.get('address') || null,
       lat: fd.get('lat') ? Number(fd.get('lat')) : null,
       lng: fd.get('lng') ? Number(fd.get('lng')) : null
@@ -93,5 +157,6 @@
 
   // init
   loadMe();
+  loadUsers();
   loadTasks();
 })();
