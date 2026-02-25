@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Service App — Strona startowa</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>Service App</h1>
+    <p>Witaj! To jest strona startowa Twojej aplikacji.</p>
+
+    <section id="status">
+      <button id="checkHealth">Sprawdź zdrowie serwera</button>
+      <pre id="healthResult"></pre>
+    </section>
+
+    <section id="tasksSection">
+      <button id="loadTasks">Pobierz listę zadań</button>
+      <ul id="tasks"></ul>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,11 +1,15 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const { Pool } = require('pg');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve static frontend from /public
+app.use(express.static(path.join(__dirname, 'public')));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://user:pass@localhost:5432/service_app',
@@ -63,6 +67,11 @@ app.put('/tasks/:id', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Root: serve the frontend page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const port = process.env.PORT || 3000;
