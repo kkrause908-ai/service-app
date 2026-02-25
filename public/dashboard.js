@@ -16,6 +16,7 @@
 
   let map, marker;
   let currentTask = null;
+   let currentUser = null;
 
   logoutBtn.addEventListener('click', ()=>{ localStorage.removeItem('token'); window.location.href = '/login.html'; });
   refresh.addEventListener('click', loadTasks);
@@ -25,7 +26,8 @@
       const res = await fetch('/me', {headers});
       const json = await res.json();
       if(!res.ok) throw new Error(json.error||'Błąd');
-      who.textContent = json.username + ' (' + json.role + ')';
+       who.textContent = json.username + ' (' + json.role + ')';
+       currentUser = json;
     }catch(e){
       console.error(e); localStorage.removeItem('token'); window.location.href='/login.html';
     }
@@ -71,6 +73,9 @@
     taskMeta.textContent = 'ID: ' + t.id + ' • Status: ' + (t.status||'') + ' • Priority: ' + (t.priority||'');
     taskDesc.textContent = t.description || '';
     currentTask = t;
+     document.getElementById('taskStart').textContent = t.start_time || '-';
+     document.getElementById('taskEnd').textContent = t.end_time || '-';
+     document.getElementById('repairShort').value = t.repair_short || '';
     if(t.lat && t.lng){
       if(!map){
         map = L.map(mapEl).setView([t.lat, t.lng], 13);
@@ -108,6 +113,45 @@
       URL.revokeObjectURL(url);
     }catch(e){ alert('Błąd: '+e.message); }
   });
+
+   // Start / Finish / Save short repair handlers
+   const startBtn = document.getElementById('startBtn');
+   const finishBtn = document.getElementById('finishBtn');
+   const saveShort = document.getElementById('saveShort');
+
+   startBtn && startBtn.addEventListener('click', async ()=>{
+     if(!currentTask) return alert('Wybierz zadanie');
+     if(currentUser.role !== 'admin' && currentUser.username !== currentTask.assigned_to) return alert('Brak uprawnień');
+     try{
+       const res = await fetch('/tasks/'+currentTask.id, { method:'PUT', headers, body: JSON.stringify({ status:'w trakcie' }) });
+       if(!res.ok) throw new Error((await res.json()).error||'');
+       alert('Zlecenie rozpoczęte');
+       loadTasks();
+     }catch(e){ alert('Błąd: '+e.message); }
+   });
+
+   finishBtn && finishBtn.addEventListener('click', async ()=>{
+     if(!currentTask) return alert('Wybierz zadanie');
+     if(currentUser.role !== 'admin' && currentUser.username !== currentTask.assigned_to) return alert('Brak uprawnień');
+     try{
+       const res = await fetch('/tasks/'+currentTask.id, { method:'PUT', headers, body: JSON.stringify({ status:'zakończony' }) });
+       if(!res.ok) throw new Error((await res.json()).error||'');
+       alert('Zlecenie zakończone');
+       loadTasks();
+     }catch(e){ alert('Błąd: '+e.message); }
+   });
+
+   saveShort && saveShort.addEventListener('click', async ()=>{
+     if(!currentTask) return alert('Wybierz zadanie');
+     if(currentUser.role !== 'admin' && currentUser.username !== currentTask.assigned_to) return alert('Brak uprawnień');
+     const text = document.getElementById('repairShort').value || '';
+     try{
+       const res = await fetch('/tasks/'+currentTask.id, { method:'PUT', headers, body: JSON.stringify({ repair_short: text }) });
+       if(!res.ok) throw new Error((await res.json()).error||'');
+       alert('Zapisano');
+       loadTasks();
+     }catch(e){ alert('Błąd: '+e.message); }
+   });
 
   // creation UI moved to separate page
 

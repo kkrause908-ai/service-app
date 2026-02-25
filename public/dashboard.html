@@ -23,39 +23,25 @@
     <aside class="sidebar">
       <button id="refresh">Odśwież</button>
       <ul id="tasksList"></ul>
-      <div id="createBox" style="display:none">
-        <h3>Nowe zlecenie</h3>
-        <form id="createForm">
-          <input name="title" placeholder="Tytuł" required>
-          <label class="field">Tytuł
-            <input name="title" placeholder="Tytuł zlecenia" required>
-            <span class="error" data-for="title"></span>
-          </label>
-          <label class="field">Przypisz do
-            <input name="assigned_to" placeholder="Nazwa użytkownika" list="usersList">
-            <datalist id="usersList"></datalist>
-            <span class="error" data-for="assigned_to"></span>
-          </label>
-          <div class="row">
-            <label>Stan zlecenia
-              <select name="status">
-            <!-- Creation moved to separate page -->
-          </div>
-
-          <label class="field">Opis
-            <textarea name="description" placeholder="Opis zlecenia"></textarea>
-          </label>
-          <div class="formActions">
-            <button type="submit">Utwórz zlecenie</button>
-          </div>
-        </form>
-      </div>
+      <!-- Creation moved to separate page -->
     </aside>
     <section class="content">
       <div id="taskDetail">
         <h2 id="taskTitle">Wybierz zadanie</h2>
         <p id="taskMeta"></p>
         <p id="taskDesc"></p>
+          <div class="taskTimes">
+            <p>Rozpoczęcie: <span id="taskStart">-</span></p>
+            <p>Zakończenie: <span id="taskEnd">-</span></p>
+          </div>
+          <div id="taskActions" class="taskActions">
+            <button id="startBtn">Rozpocznij</button>
+            <button id="finishBtn">Zakończ</button>
+            <label class="field">Krótkie podsumowanie naprawy
+              <textarea id="repairShort" rows="3"></textarea>
+            </label>
+            <div class="formActions"><button id="saveShort">Zapisz opis</button></div>
+          </div>
         <div class="detailActions">
           <button id="openMap">Otwórz mapę</button>
           <button id="genPdf">Generuj PDF</button>

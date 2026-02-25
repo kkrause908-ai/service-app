@@ -65,6 +65,16 @@ pool.query(`
     ALTER TABLE tasks ALTER COLUMN status SET DEFAULT 'utworzony'
   `).then(() => console.log('Tasks status default ensured')).catch(() => {});
 
+  // Add timing and signature columns
+  pool.query(`
+    ALTER TABLE tasks
+    ADD COLUMN IF NOT EXISTS start_time TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS end_time TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS executor_signature TEXT,
+    ADD COLUMN IF NOT EXISTS receiver_signature TEXT,
+    ADD COLUMN IF NOT EXISTS repair_short TEXT
+  `).then(() => console.log('Tasks table ensured timing/signature columns')).catch(console.error);
+
   // Seed admin user when ADMIN_PASSWORD provided
   if (process.env.ADMIN_PASSWORD) {
     (async () => {
@@ -188,9 +198,12 @@ app.get('/tasks/:id/pdf', requireAuth, async (req, res) => {
     doc.fontSize(12).text(`ID: ${task.id}`);
     doc.text(`Tytuł: ${task.title || ''}`);
     doc.text(`Status: ${task.status || ''}`);
+    doc.text(`Priorytet: ${task.priority || ''}`);
     doc.text(`Przypisany do: ${task.assigned_to || ''}`);
     doc.text(`Przypisany przez: ${task.assigned_by || ''}`);
     doc.text(`Data utworzenia: ${task.created_at}`);
+    doc.text(`Rozpoczęcie: ${task.start_time || ''}`);
+    doc.text(`Zakończenie: ${task.end_time || ''}`);
     doc.moveDown();
     doc.fontSize(14).text('Adres i lokalizacja');
     doc.fontSize(12).text(`Adres: ${task.address || ''}`);
@@ -205,6 +218,31 @@ app.get('/tasks/:id/pdf', requireAuth, async (req, res) => {
     doc.moveDown();
     doc.fontSize(14).text('Opis zlecenia');
     doc.fontSize(12).text(task.description || '');
+    doc.moveDown();
+    doc.fontSize(14).text('Krótkie podsumowanie naprawy');
+    doc.fontSize(12).text(task.repair_short || '');
+
+    // signatures
+    if (task.executor_signature) {
+      try{
+        const parts = task.executor_signature.split(',');
+        const b64 = parts.length>1 ? parts[1] : parts[0];
+        const buf = Buffer.from(b64, 'base64');
+        doc.addPage();
+        doc.fontSize(12).text('Podpis wykonawcy:', { underline: true });
+        doc.image(buf, { width: 250 });
+      }catch(e){ console.warn('Could not render executor signature', e); }
+    }
+    if (task.receiver_signature) {
+      try{
+        const parts = task.receiver_signature.split(',');
+        const b64 = parts.length>1 ? parts[1] : parts[0];
+        const buf = Buffer.from(b64, 'base64');
+        doc.moveDown();
+        doc.fontSize(12).text('Podpis odbiorcy:', { underline: true });
+        doc.image(buf, { width: 250 });
+      }catch(e){ console.warn('Could not render receiver signature', e); }
+    }
 
     doc.end();
   } catch (err) {
@@ -227,7 +265,7 @@ app.post('/tasks', requireAuth, requireRole('admin'), async (req, res) => {
 
 app.put('/tasks/:id', requireAuth, async (req, res) => {
   const id = req.params.id;
-  const { status, fault, repair_procedure, assigned_to, address, lat, lng } = req.body;
+  const { status, fault, repair_procedure, assigned_to, address, lat, lng, start_time, end_time, executor_signature, receiver_signature, repair_short, priority } = req.body;
   try {
     // fetch task
     const existing = await pool.query('SELECT * FROM tasks WHERE id=$1', [id]);
@@ -237,9 +275,20 @@ app.put('/tasks/:id', requireAuth, async (req, res) => {
     if (req.user.role !== 'admin' && req.user.username !== task.assigned_to) {
       return res.status(403).json({ error: 'forbidden' });
     }
+
+    // set start_time automatically when moving to 'w trakcie'
+    let newStart = task.start_time;
+    let newEnd = task.end_time;
+    if (status === 'w trakcie' && !task.start_time) {
+      newStart = new Date();
+    }
+    if (status === 'zakończony' && !task.end_time) {
+      newEnd = new Date();
+    }
+
     await pool.query(
-      'UPDATE tasks SET status=$1, fault=$2, repair_procedure=$3, assigned_to=$4, address=$5, lat=$6, lng=$7 WHERE id=$8',
-      [status || task.status, fault || task.fault, repair_procedure || task.repair_procedure, assigned_to || task.assigned_to, address || task.address, lat || task.lat, lng || task.lng, id]
+      `UPDATE tasks SET status=$1, fault=$2, repair_procedure=$3, assigned_to=$4, address=$5, lat=$6, lng=$7, start_time=$8, end_time=$9, executor_signature=$10, receiver_signature=$11, repair_short=$12, priority=$13 WHERE id=$14`,
+      [status || task.status, fault || task.fault, repair_procedure || task.repair_procedure, assigned_to || task.assigned_to, address || task.address, lat || task.lat, lng || task.lng, start_time || newStart, end_time || newEnd, executor_signature || task.executor_signature, receiver_signature || task.receiver_signature, repair_short || task.repair_short, priority || task.priority, id]
     );
     res.json({ message: 'Updated' });
   } catch (err) {
