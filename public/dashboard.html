@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Service App — Dashboard</title>
   <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-FjQBu5GNgJxJCVf6fMzKEhNDzRjgI4aMZIMX0MzpqLgEqPP7ykfFPVPqcsmKDNIaQNhQT3vZVWiL3VlqhVPR6w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+e2kQm0aZb8g+vY3j0q9Jm0bZr7EtQ1VYx3fQtmM0=" crossorigin=""/>
 </head>
 <body>
@@ -20,62 +20,155 @@
       <button id="logout">Wyloguj</button>
     </div>
   </header>
-  <main class="container">
-    <aside class="sidebar">
-      <button id="refresh">Odśwież</button>
-      <ul id="tasksList"></ul>
-      <!-- Creation moved to separate page -->
-    </aside>
-    <section class="content">
-      <div id="taskDetail">
-        <h2 id="taskTitle">Wybierz zadanie</h2>
-        <p id="taskMeta"></p>
-        <p id="taskDesc"></p>
-          <div class="taskTimes">
-            <p>Rozpoczęcie: <span id="taskStart">-</span></p>
-            <p>Zakończenie: <span id="taskEnd">-</span></p>
-          </div>
-          <div id="taskActions" class="taskActions">
-            <button id="startBtn">Rozpocznij</button>
-            <button id="finishBtn">Zakończ</button>
-            <label class="field">Krótkie podsumowanie naprawy
-              <textarea id="repairShort" rows="3"></textarea>
-            </label>
-            <div class="formActions"><button id="saveShort">Zapisz opis</button></div>
-          </div>
-        <div class="detailActions">
-          <button id="openMap">Otwórz mapę</button>
-          <button id="genPdf">Generuj PDF</button>
-        </div>
-        <div id="map" class="map"></div>
-        <div class="photosArea">
-          <h4>Zdjęcia</h4>
-          <div id="photosList" class="photosList"></div>
-          <div class="uploadControls">
-            <input type="file" id="photoInput" accept="image/*">
-            <button id="uploadPhoto">Wyślij zdjęcie</button>
-          </div>
-        </div>
 
-        <div class="historyArea">
-          <h4>Historia</h4>
-          <ul id="history" class="historyList"></ul>
+  <main class="dashboardMain">
+    <!-- Kalendarz -->
+    <section class="calendarSection">
+      <div class="calendarContainer">
+        <div class="calendarHeader">
+          <button id="prevMonth" class="btnNav">&larr;</button>
+          <h2 id="monthYear"></h2>
+          <button id="nextMonth" class="btnNav">&rarr;</button>
         </div>
-
-        <div id="signatureModal" class="modal" style="display:none">
-          <div class="modalContent">
-            <h3>Podpisz</h3>
-            <canvas id="signCanvas" width="600" height="200" style="border:1px solid #ccc"></canvas>
-            <div class="modalActions">
-              <button id="saveSign">Zapisz</button>
-              <button id="clearSign">Wyczyść</button>
-              <button id="cancelSign">Anuluj</button>
-            </div>
-          </div>
+        <div class="calendarGrid">
+          <div class="dayLabel">Pn</div>
+          <div class="dayLabel">Wt</div>
+          <div class="dayLabel">Ś</div>
+          <div class="dayLabel">Cz</div>
+          <div class="dayLabel">Pt</div>
+          <div class="dayLabel">So</div>
+          <div class="dayLabel">N</div>
+          <div id="calendarDays"></div>
         </div>
       </div>
     </section>
+
+    <!-- Lista zadań i detail -->
+    <div class="dashboardContent">
+      <section class="tasksListSection">
+        <div class="sectionHeader">
+          <h3>Zlecenia</h3>
+          <button id="refreshTasks" class="btn small"><i class="fa fa-refresh"></i> Odśwież</button>
+        </div>
+        <div id="tasksList" class="tasksListContainer"></div>
+      </section>
+
+      <!-- Detail panel prawy -->
+      <aside class="taskDetailSidebar" id="detailSidebar" style="display:none">
+        <div class="detailHeader">
+          <button id="closeDetail" class="btnClose">&times;</button>
+        </div>
+        <div id="taskDetail" class="taskDetailContent">
+          <h2 id="taskTitle">Wybierz zlecenie</h2>
+          <p id="taskMeta" class="muted"></p>
+          <p id="taskDesc"></p>
+
+          <div class="taskTimes">
+            <p><strong>Rozpoczęcie:</strong> <span id="taskStart">-</span></p>
+            <p><strong>Zakończenie:</strong> <span id="taskEnd">-</span></p>
+          </div>
+
+          <div id="taskActions" class="taskActions">
+            <button id="startBtn" class="btn"><i class="fa fa-play"></i> Rozpocznij</button>
+            <button id="finishBtn" class="btn"><i class="fa fa-check"></i> Zakończ</button>
+          </div>
+
+          <label class="field">Krótkie podsumowanie naprawy
+            <textarea id="repairShort" rows="3" placeholder="Opisz co zostało zrobione..."></textarea>
+          </label>
+          <button id="saveShort" class="btn small">Zapisz opis</button>
+
+          <div class="detailActions">
+            <button id="editBtn" class="btn" style="display:none"><i class="fa fa-edit"></i> Edytuj</button>
+            <button id="deleteBtn" class="btn secondary" style="display:none"><i class="fa fa-trash"></i> Usuń</button>
+            <button id="openMap" class="btn small"><i class="fa fa-map"></i> Mapa</button>
+            <button id="genPdf" class="btn small"><i class="fa fa-file-pdf"></i> PDF</button>
+          </div>
+
+          <div id="map" class="mapDetail"></div>
+
+          <div class="photosArea">
+            <h4><i class="fa fa-camera"></i> Zdjęcia</h4>
+            <div id="photosList" class="photosList"></div>
+            <div class="uploadControls">
+              <input type="file" id="photoInput" accept="image/*">
+              <button id="uploadPhoto" class="btn small">Wyślij zdjęcie</button>
+            </div>
+          </div>
+
+          <div class="historyArea">
+            <h4><i class="fa fa-history"></i> Historia</h4>
+            <ul id="history" class="historyList"></ul>
+          </div>
+
+          <div class="signatureSection">
+            <button id="executorSignBtn" data-sign-executor class="btn small"><i class="fa fa-pen"></i> Podpis wykonawcy</button>
+            <button id="receiverSignBtn" data-sign-receiver class="btn small"><i class="fa fa-pen"></i> Podpis odbiorcy</button>
+          </div>
+        </div>
+      </aside>
+    </div>
   </main>
+
+  <!-- Signature Modal -->
+  <div id="signatureModal" class="modal" style="display:none">
+    <div class="modalContent">
+      <h3>Podpisz</h3>
+      <canvas id="signCanvas" width="600" height="200" style="border:1px solid var(--lux4);border-radius:6px;max-width:100%"></canvas>
+      <div class="modalActions">
+        <button id="saveSign" class="btn">Zapisz</button>
+        <button id="clearSign" class="btn secondary">Wyczyść</button>
+        <button id="cancelSign" class="btn secondary">Anuluj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Task Modal -->
+  <div id="editModal" class="modal" style="display:none">
+    <div class="modalContent modalLarge">
+      <h3>Edytuj zlecenie</h3>
+      <form id="editForm">
+        <label class="field">Tytuł
+          <input name="title" required>
+        </label>
+        <label class="field">Opis
+          <textarea name="description" rows="3"></textarea>
+        </label>
+        <label class="field">Przypisz do
+          <input name="assigned_to" list="usersEditList" placeholder="Nazwa użytkownika">
+          <datalist id="usersEditList"></datalist>
+        </label>
+        <div class="row">
+          <label>Status
+            <select name="status">
+              <option value="utworzony">Utworzony</option>
+              <option value="w trakcie">W trakcie</option>
+              <option value="zakończony">Zakończony</option>
+              <option value="feedback">Feedback</option>
+            </select>
+          </label>
+          <label>Priorytet
+            <select name="priority">
+              <option value="high">Wysoki</option>
+              <option value="med">Średni</option>
+              <option value="low">Niski</option>
+            </select>
+          </label>
+        </div>
+        <label class="field">Adres
+          <input name="address" placeholder="Adres zlecenia">
+        </label>
+        <div class="row">
+          <label>Lat <input name="lat" type="number" step="any" placeholder="Szerokość"></label>
+          <label>Lng <input name="lng" type="number" step="any" placeholder="Długość"></label>
+        </div>
+        <div class="modalActions">
+          <button type="submit" class="btn">Zapisz zmiany</button>
+          <button type="button" id="closeEdit" class="btn secondary">Anuluj</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j8k8b4oXrKXkKp2Rk8s+7YjCqD1q0rDgQ1jvM5s=" crossorigin=""></script>
   <script src="/dashboard.js" defer></script>

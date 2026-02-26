@@ -356,6 +356,21 @@ app.put('/tasks/:id', requireAuth, async (req, res) => {
   }
 });
 
+// Delete task (admin only)
+app.delete('/tasks/:id', requireAuth, requireRole('admin'), async (req, res) => {
+  const id = req.params.id;
+  try {
+    const existing = await pool.query('SELECT * FROM tasks WHERE id=$1', [id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'not found' });
+    await pool.query('DELETE FROM task_photos WHERE task_id=$1', [id]);
+    await pool.query('DELETE FROM task_history WHERE task_id=$1', [id]);
+    await pool.query('DELETE FROM tasks WHERE id=$1', [id]);
+    res.json({ message: 'Deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Root: serve the frontend page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
