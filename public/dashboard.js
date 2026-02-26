@@ -83,16 +83,29 @@
     }catch(e){ console.warn('Could not load users', e); }
   }
 
+  // Ensure Leaflet is loaded before using `L`
+  function ensureLeaflet(){
+    return new Promise((resolve, reject)=>{
+      if(window.L) return resolve(window.L);
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      s.crossOrigin = '';
+      s.onload = ()=> resolve(window.L);
+      s.onerror = (e)=> reject(new Error('Failed to load Leaflet'));
+      document.head.appendChild(s);
+    });
+  }
+
   async function showTaskById(id){
     try{
       const res = await fetch('/tasks/'+id, { headers: headersAuth() });
       const t = await res.json();
       if(!res.ok) throw new Error(t.error||'Błąd');
-      showTask(t);
+      await showTask(t);
     }catch(e){ alert('Błąd: '+e.message); }
   }
 
-  function showTask(t){
+  async function showTask(t){
     taskTitle.textContent = t.title || 'Bez tytułu';
     taskMeta.textContent = 'ID: ' + t.id + ' • Status: ' + (t.status||'') + ' • Priority: ' + (t.priority||'');
     taskDesc.textContent = t.description || '';
@@ -101,10 +114,13 @@
     document.getElementById('taskEnd').textContent = t.end_time || '-';
     document.getElementById('repairShort').value = t.repair_short || '';
 
-    // ensure map
+    // ensure map (load leaflet if needed)
     if(t.lat && t.lng){
-      if(!map){ map = L.map(mapEl).setView([t.lat, t.lng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map); marker = L.marker([t.lat, t.lng]).addTo(map); }
-      else { map.setView([t.lat, t.lng], 13); marker.setLatLng([t.lat, t.lng]); }
+      try{
+        await ensureLeaflet();
+        if(!map){ map = L.map(mapEl).setView([t.lat, t.lng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map); marker = L.marker([t.lat, t.lng]).addTo(map); }
+        else { map.setView([t.lat, t.lng], 13); marker.setLatLng([t.lat, t.lng]); }
+      }catch(e){ console.warn('Leaflet load failed', e); mapEl.innerHTML = '<p>Mapa niedostępna.</p>'; }
     } else { if(map){ map.remove(); map = null; marker = null; } mapEl.innerHTML = '<p>Brak współrzędnych dla tego zadania.</p>'; }
 
     // load photos and history
@@ -141,21 +157,40 @@
   startBtn && startBtn.addEventListener('click', async ()=>{
     if(!currentTask) return alert('Wybierz zadanie');
     if(currentUser.role !== 'admin' && currentUser.username !== currentTask.assigned_to) return alert('Brak uprawnień');
-    try{ const res = await fetch('/tasks/'+currentTask.id, { method:'PUT', headers: headers(), body: JSON.stringify({ status:'w trakcie' }) }); if(!res.ok) throw new Error((await res.json()).error||''); alert('Zlecenie rozpoczęte'); loadTasks(); }catch(e){ alert('Błąd: '+e.message); }
+    try{
+      const res = await fetch('/tasks/'+currentTask.id, { method:'PUT', headers: headers(), body: JSON.stringify({ status:'w trakcie' }) });
+      if(!res.ok) throw new Error((await res.json()).error||'');
+      alert('Zlecenie rozpoczęte');
+      await loadTasks();
+      await showTaskById(currentTask.id);
+    }catch(e){ alert('Błąd: '+e.message); }
   });
 
   finishBtn && finishBtn.addEventListener('click', async ()=>{
     if(!currentTask) return alert('Wybierz zadanie');
     if(currentUser.role !== 'admin' && currentUser.username !== currentTask.assigned_to) return alert('Brak uprawnień');
-    try{ const res = await fetch('/tasks/'+currentTask.id, { method:'PUT', headers: headers(), body: JSON.stringify({ status:'zakończony' }) }); if(!res.ok) throw new Error((await res.json()).error||''); alert('Zlecenie zakończone'); loadTasks(); }catch(e){ alert('Błąd: '+e.message); }
+    try{
+      const res = await fetch('/tasks/'+currentTask.id, { method:'PUT', headers: headers(), body: JSON.stringify({ status:'zakończony' }) });
+      if(!res.ok) throw new Error((await res.json()).error||'');
+      alert('Zlecenie zakończone');
+      await loadTasks();
+      await showTaskById(currentTask.id);
+    }catch(e){ alert('Błąd: '+e.message); }
   });
 
   saveShort && saveShort.addEventListener('click', async ()=>{
     if(!currentTask) return alert('Wybierz zadanie');
     if(currentUser.role !== 'admin' && currentUser.username !== currentTask.assigned_to) return alert('Brak uprawnień');
     const text = document.getElementById('repairShort').value || '';
-    try{ const res = await fetch('/tasks/'+currentTask.id, { method:'PUT', headers: headers(), body: JSON.stringify({ repair_short: text }) }); if(!res.ok) throw new Error((await res.json()).error||''); alert('Zapisano'); loadTasks(); }catch(e){ alert('Błąd: '+e.message); }
+    try{
+      const res = await fetch('/tasks/'+currentTask.id, { method:'PUT', headers: headers(), body: JSON.stringify({ repair_short: text }) });
+      if(!res.ok) throw new Error((await res.json()).error||'');
+      alert('Zapisano');
+      await loadTasks();
+      await showTaskById(currentTask.id);
+    }catch(e){ alert('Błąd: '+e.message); }
   });
+  
 
   // Photos
   async function loadPhotos(taskId){
@@ -211,7 +246,9 @@
     try{
       const res = await fetch(`/tasks/${currentTask.id}`, { method:'PUT', headers: headers(), body: JSON.stringify(payload) });
       if(!res.ok) throw new Error('save sign failed');
-      modal.style.display='none'; ctx && ctx.clearRect(0,0,canvas.width,canvas.height); showTask(currentTask);
+      modal.style.display='none'; ctx && ctx.clearRect(0,0,canvas.width,canvas.height);
+      await showTaskById(currentTask.id);
+      await loadTasks();
     }catch(e){ alert('Błąd zapisu podpisu'); }
   });
 

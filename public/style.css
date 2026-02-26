@@ -98,3 +98,49 @@ button:hover{opacity:0.95}
 .modalActions{display:flex;gap:0.5rem;margin-top:0.5rem}
 
 @media (min-width:900px){ .cardsGrid{grid-template-columns:repeat(2,1fr)} }
+
+/* Global nav/menu */
+.topbar .menu{display:flex;gap:0.75rem;align-items:center}
+.topbar .menu a{color:var(--lux3);text-decoration:none;padding:0.35rem 0.6rem;border-radius:6px}
+.topbar .menu a:hover{background:rgba(255,255,255,0.04)}
+
+/* Muted text */
+.muted{color:var(--muted)}
+
+/* Sidebar */
+.sidebar h3{margin-top:0;color:var(--lux4)}
+.sidebar button{width:100%;margin-bottom:0.5rem}
+
+/* Forms & inputs */
+input,textarea,select{font-family:inherit;font-size:1rem}
+input:focus,textarea:focus,select:focus{outline:2px solid rgba(88,173,178,0.18);box-shadow:0 0 0 3px rgba(88,173,178,0.06)}
+label{display:block;margin-bottom:0.5rem}
+.field .error{color:var(--lux1);font-size:0.9rem}
+
+/* Buttons consistent */
+.btn{display:inline-block;background:var(--lux5);color:#063233;padding:0.5rem 0.75rem;border-radius:8px;text-decoration:none;border:none}
+.btn.secondary{background:transparent;color:var(--lux4);border:1px solid rgba(16,68,71,0.08)}
+.btn.small{padding:0.25rem 0.5rem;font-size:0.9rem}
+
+/* Task detail actions */
+.taskActions{display:flex;gap:0.5rem;flex-wrap:wrap;margin:0.5rem 0}
+.taskActions button{background:var(--lux4);color:var(--lux3);border-radius:6px;padding:0.4rem 0.6rem}
+
+/* Upload controls */
+.uploadControls input[type=file]{border:1px dashed rgba(16,68,71,0.06);padding:0.25rem;border-radius:6px;background:#fff}
+
+/* Links */
+a{color:var(--lux4)}
+a:hover{text-decoration:underline}
+
+/* Small utilities */
+.center{text-align:center}
+.mutedSmall{color:var(--muted);font-size:0.9rem}
+
+/* Make auth box centered on small screens */
+@media (max-width:600px){
+	.auth{margin:1rem;padding:1rem}
+	.topbar{padding:0.5rem}
+	.topbar .menu{display:none}
+}
+
