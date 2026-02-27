@@ -17,6 +17,9 @@ services:
     build: .
     ports:
       - "3001:3000"
+    volumes:
+      - .:/app   # mount local code into container so changes propagate without rebuild
+      - /app/node_modules   # keep the image's node_modules directory (bind hides it otherwise)
     environment:
       DATABASE_URL: "postgresql://user:pass@postgres:5432/service_app?sslmode=disable"
       NODE_ENV: "production"

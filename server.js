@@ -1,4 +1,4 @@
-require('dotenv').config();
+try { require('dotenv').config(); } catch (e) { /* dotenv not installed in production image */ }
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
@@ -100,7 +100,24 @@ pool.query(`
     )
   `).then(()=>console.log('task_history table ready')).catch(console.error);
 
-  // Seed admin user when ADMIN_PASSWORD provided
+  // seed some demo tasks when database empty
+// this helps frontend show something out of the box
+(async function seedTasks(){
+  try{
+    const cnt = await pool.query('SELECT COUNT(*) FROM tasks');
+    if(+cnt.rows[0].count === 0){
+      console.log('Seeding demo tasks');
+      await pool.query(`
+        INSERT INTO tasks(title,description,status,priority,assigned_to,address) VALUES
+          ('Pierwsze zlecenie','Testowy opis','utworzony','med','user','ul. Przykładowa 1'),
+          ('Awaria sieci','Sprawdź połączenie','w trakcie','high','user','ul. Druga 2'),
+          ('Serwis urządzenia','Regularny przegląd','zakończony','low','admin','ul. Trzecia 3')
+      `);
+    }
+  }catch(e){ console.error('Task seeding failed', e); }
+})();
+
+// Seed admin user when ADMIN_PASSWORD provided
   if (process.env.ADMIN_PASSWORD) {
     (async () => {
       try {
@@ -135,9 +152,33 @@ app.get('/users', requireAuth, async (req, res) => {
 
 app.get('/health', (req, res) => res.json({ status: 'OK' }));
 
+
+// list tasks with optional filters (q, status, assigned_to)
 app.get('/tasks', async (req, res) => {
   try {
-    const result = await pool.query("SELECT *, EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds FROM tasks ORDER BY created_at DESC");
+    const { q, status, assigned_to } = req.query;
+    const where = [];
+    const params = [];
+    let idx = 1;
+    if (q) {
+      where.push(`(title ILIKE $${idx} OR description ILIKE $${idx} OR address ILIKE $${idx})`);
+      params.push(`%${q}%`);
+      idx++;
+    }
+    if (status) {
+      where.push(`status=$${idx}`);
+      params.push(status);
+      idx++;
+    }
+    if (assigned_to) {
+      where.push(`assigned_to=$${idx}`);
+      params.push(assigned_to);
+      idx++;
+    }
+    let sql = "SELECT *, EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds FROM tasks";
+    if (where.length) sql += " WHERE " + where.join(' AND ');
+    sql += " ORDER BY created_at DESC";
+    const result = await pool.query(sql, params);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });

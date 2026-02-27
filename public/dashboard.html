@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Service App — Dashboard</title>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-FjQBu5GNgJxJCVf6fMzKEhNDzRjgI4aMZIMX0MzpqLgEqPP7ykfFPVPqcsmKDNIaQNhQT3vZVWiL3VlqhVPR6w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+e2kQm0aZb8g+vY3j0q9Jm0bZr7EtQ1VYx3fQtmM0=" crossorigin=""/>
+  <link rel="stylesheet" href="/style.css?v=3">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 </head>
 <body>
   <header class="topbar">
@@ -39,7 +39,11 @@
       <section class="tasksListSection">
         <div class="sectionHeader">
           <h3>Zlecenia</h3>
-          <button id="refreshTasks" class="btn small"><i class="fa fa-refresh"></i> Odśwież</button>
+          <div class="headerActions">
+            <input type="text" id="taskSearch" placeholder="Szukaj..." />
+            <button id="refreshTasks" class="btn small"><i class="fa fa-refresh"></i> Odśwież</button>
+            <button id="newTaskBtn" class="btn small"><i class="fa fa-plus"></i> Nowe</button>
+          </div>
         </div>
         <div id="tasksList" class="tasksListContainer"></div>
       </section>
@@ -161,7 +165,54 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j8k8b4oXrKXkKp2Rk8s+7YjCqD1q0rDgQ1jvM5s=" crossorigin=""></script>
-  <script src="/dashboard.js" defer></script>
+  <!-- Create Task Modal -->
+  <div id="createModal" class="modal" style="display:none">
+    <div class="modalContent modalLarge">
+      <h3>Nowe zlecenie</h3>
+      <form id="createModalForm">
+        <label class="field">Tytuł
+          <input name="title" required>
+        </label>
+        <label class="field">Opis
+          <textarea name="description" rows="3"></textarea>
+        </label>
+        <label class="field">Przypisz do
+          <input name="assigned_to" list="usersEditList" placeholder="Nazwa użytkownika">
+          <datalist id="usersEditList"></datalist>
+        </label>
+        <div class="row">
+          <label>Status
+            <select name="status">
+              <option value="utworzony">Utworzony</option>
+              <option value="w trakcie">W trakcie</option>
+              <option value="zakończony">Zakończony</option>
+              <option value="feedback">Feedback</option>
+            </select>
+          </label>
+          <label>Priorytet
+            <select name="priority">
+              <option value="high">Wysoki</option>
+              <option value="med">Średni</option>
+              <option value="low">Niski</option>
+            </select>
+          </label>
+        </div>
+        <label class="field">Adres
+          <input name="address" placeholder="Adres zlecenia">
+        </label>
+        <div class="row">
+          <label>Lat <input name="lat" type="number" step="any" placeholder="Szerokość"></label>
+          <label>Lng <input name="lng" type="number" step="any" placeholder="Długość"></label>
+        </div>
+        <div class="modalActions">
+          <button type="submit" class="btn">Utwórz</button>
+          <button type="button" id="closeCreate" class="btn secondary">Anuluj</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="/dashboard.js?v=3" defer></script>
 </body>
 </html>
