@@ -42,15 +42,24 @@
     document.getElementById('monthYear').textContent = currentMonth.toLocaleDateString('pl-PL', {month:'long',year:'numeric'});
     
     const firstDay = new Date(year, month, 1).getDay();
+    const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1; // Adjust for Monday=0
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
     
     const days = document.getElementById('calendarDays');
     days.innerHTML = '';
-    days.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:2px';
+    
+    // Labels (Pn, Wt, Ś, Cz, Pt, So, N)
+    const labels = ['Pn', 'Wt', 'Ś', 'Cz', 'Pt', 'So', 'N'];
+    labels.forEach(label => {
+      const labelEl = document.createElement('div');
+      labelEl.className = 'dayLabel';
+      labelEl.textContent = label;
+      days.appendChild(labelEl);
+    });
     
     // Previous month days
-    for(let i = firstDay - 1; i >= 0; i--){
+    for(let i = adjustedFirstDay - 1; i >= 0; i--){
       const day = daysInPrevMonth - i;
       const cell = createDayCell(day, true);
       days.appendChild(cell);
@@ -63,8 +72,8 @@
     }
     
     // Next month days
-    const totalCells = days.children.length + firstDay;
-    const remainingCells = 42 - totalCells;
+    const totalCells = 7 + adjustedFirstDay + daysInMonth;
+    const remainingCells = Math.ceil(totalCells / 7) * 7 - totalCells;
     for(let i = 1; i <= remainingCells; i++){
       const cell = createDayCell(i, true);
       days.appendChild(cell);
