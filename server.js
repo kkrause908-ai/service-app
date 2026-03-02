@@ -553,8 +553,6 @@ app.get('/', (req, res) => {
 });
 
 // Health check
-app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date().toISOString() }));
-
 // Upload photos with validation and size limit
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if(!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
