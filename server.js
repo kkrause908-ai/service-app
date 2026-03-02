@@ -9,11 +9,40 @@ const PDFDocument = require('pdfkit');
 const multer = require('multer');
 const fs = require('fs');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret';
+// Security and validation
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret_in_production';
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(helmet());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb' }));
+app.use(mongoSanitize());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minut
+  max: 100, // limit każdego IP do 100 requestów
+  message: 'Zbyt wiele żądań, spróbuj później'
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5, // 5 prób logowania na IP
+  message: 'Zbyt wiele prób logowania, spróbuj za 15 minut'
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10, // 10 uploadów na minutę
+  message: 'Zbyt wiele uploadów'
+});
+
+app.use(limiter);
 
 // Serve static frontend from /public
 app.use(express.static(path.join(__dirname, 'public')));
@@ -100,6 +129,21 @@ pool.query(`
     )
   `).then(()=>console.log('task_history table ready')).catch(console.error);
 
+  // Event log table for security auditing
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS event_logs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER,
+      username VARCHAR(100),
+      action VARCHAR(255),
+      resource VARCHAR(255),
+      details TEXT,
+      ip_address VARCHAR(45),
+      status VARCHAR(20),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).then(()=>console.log('event_logs table ready')).catch(console.error);
+
   // seed some demo tasks when database empty
 // this helps frontend show something out of the box
 (async function seedTasks(){
@@ -153,13 +197,18 @@ app.get('/users', requireAuth, async (req, res) => {
 app.get('/health', (req, res) => res.json({ status: 'OK' }));
 
 
-// list tasks with optional filters (q, status, assigned_to)
+// list tasks with optional filters (q, status, assigned_to) and pagination
 app.get('/tasks', async (req, res) => {
   try {
-    const { q, status, assigned_to } = req.query;
+    const { q, status, priority, assigned_to, page = 1, limit = 20 } = req.query;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
+    const offset = (pageNum - 1) * limitNum;
+    
     const where = [];
     const params = [];
     let idx = 1;
+    
     if (q) {
       where.push(`(title ILIKE $${idx} OR description ILIKE $${idx} OR address ILIKE $${idx})`);
       params.push(`%${q}%`);
@@ -170,18 +219,40 @@ app.get('/tasks', async (req, res) => {
       params.push(status);
       idx++;
     }
+    if (priority) {
+      where.push(`priority=$${idx}`);
+      params.push(priority);
+      idx++;
+    }
     if (assigned_to) {
       where.push(`assigned_to=$${idx}`);
       params.push(assigned_to);
       idx++;
     }
+    
     let sql = "SELECT *, EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds FROM tasks";
     if (where.length) sql += " WHERE " + where.join(' AND ');
-    sql += " ORDER BY created_at DESC";
+    
+    // Get total count
+    const countSql = "SELECT COUNT(*) as count FROM tasks" + (where.length ? " WHERE " + where.join(' AND ') : "");
+    const countResult = await pool.query(countSql, params);
+    const total = parseInt(countResult.rows[0].count);
+    
+    sql += " ORDER BY created_at DESC LIMIT $" + (idx) + " OFFSET $" + (idx + 1);
+    params.push(limitNum, offset);
+    
     const result = await pool.query(sql, params);
-    res.json(result.rows);
+    res.json({
+      data: result.rows,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to fetch tasks' });
   }
 });
 
@@ -203,35 +274,67 @@ app.get('/tasks/:id', requireAuth, async (req, res) => {
 });
 
 // --- Authentication endpoints ---
-app.post('/register', async (req, res) => {
+app.post('/register', authLimiter, async (req, res) => {
   const { username, password, role } = req.body || {};
-  if (!username || !password) return res.status(400).json({ error: 'username and password required' });
+  const ip = req.ip || req.connection.remoteAddress;
+  
+  if (!username || !password) {
+    await logEvent(null, username, 'register_attempt', 'auth', 'Invalid input', ip, 'failure');
+    return res.status(400).json({ error: 'username and password required' });
+  }
+  if (username.length < 3 || username.length > 50) {
+    await logEvent(null, username, 'register_attempt', 'auth', 'Username invalid length', ip, 'failure');
+    return res.status(400).json({ error: 'username must be 3-50 characters' });
+  }
+  if (password.length < 6) {
+    await logEvent(null, username, 'register_attempt', 'auth', 'Password too short', ip, 'failure');
+    return res.status(400).json({ error: 'password must be at least 6 characters' });
+  }
+  
   try {
     const hashed = await bcrypt.hash(password, 10);
     const result = await pool.query(
       'INSERT INTO users(username,password,role) VALUES($1,$2,$3) RETURNING id, username, role',
       [username, hashed, role || 'user']
     );
+    await logEvent(result.rows[0].id, username, 'register_success', 'auth', null, ip, 'success');
     res.json(result.rows[0]);
   } catch (err) {
-    if (err.code === '23505') return res.status(400).json({ error: 'username already exists' });
-    res.status(500).json({ error: err.message });
+    if (err.code === '23505') {
+      await logEvent(null, username, 'register_attempt', 'auth', 'Username exists', ip, 'failure');
+      return res.status(400).json({ error: 'username already exists' });
+    }
+    await logEvent(null, username, 'register_attempt', 'auth', err.message, ip, 'failure');
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login', authLimiter, async (req, res) => {
   const { username, password } = req.body || {};
-  if (!username || !password) return res.status(400).json({ error: 'username and password required' });
+  const ip = req.ip || req.connection.remoteAddress;
+  
+  if (!username || !password) {
+    await logEvent(null, username, 'login_attempt', 'auth', 'Missing credentials', ip, 'failure');
+    return res.status(400).json({ error: 'username and password required' });
+  }
   try {
     const result = await pool.query('SELECT * FROM users WHERE username=$1', [username]);
-    if (result.rows.length === 0) return res.status(401).json({ error: 'invalid credentials' });
+    if (result.rows.length === 0) {
+      await logEvent(null, username, 'login_attempt', 'auth', 'User not found', ip, 'failure');
+      return res.status(401).json({ error: 'invalid credentials' });
+    }
     const user = result.rows[0];
     const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
+    if (!ok) {
+      await logEvent(user.id, username, 'login_attempt', 'auth', 'Wrong password', ip, 'failure');
+      return res.status(401).json({ error: 'invalid credentials' });
+    }
     const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
-    res.json({ token });
+    await logEvent(user.id, username, 'login_success', 'auth', null, ip, 'success');
+    res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    await logEvent(null, username, 'login_attempt', 'auth', err.message, ip, 'failure');
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -249,6 +352,18 @@ function requireAuth(req, res, next) {
   }
 }
 
+// Logging helper function
+async function logEvent(userId, username, action, resource, details, ip, status = 'success') {
+  try {
+    await pool.query(
+      'INSERT INTO event_logs(user_id, username, action, resource, details, ip_address, status) VALUES($1,$2,$3,$4,$5,$6,$7)',
+      [userId || null, username || 'anonymous', action, resource, details, ip, status]
+    );
+  } catch (e) {
+    console.error('Event logging failed:', e.message);
+  }
+}
+
 function requireRole(role) {
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ error: 'unauthenticated' });
@@ -258,6 +373,26 @@ function requireRole(role) {
 }
 
 app.get('/me', requireAuth, (req, res) => res.json(req.user));
+
+// Statistics endpoint
+app.get('/stats', requireAuth, async (req, res) => {
+  try {
+    const stats = await pool.query(`
+      SELECT 
+        (SELECT COUNT(*) FROM tasks) as total_tasks,
+        (SELECT COUNT(*) FROM tasks WHERE status='utworzony') as new_tasks,
+        (SELECT COUNT(*) FROM tasks WHERE status='w trakcie') as in_progress,
+        (SELECT COUNT(*) FROM tasks WHERE status='zakończony') as completed,
+        (SELECT COUNT(*) FROM tasks WHERE priority='high') as high_priority,
+        (SELECT AVG(EXTRACT(EPOCH FROM (end_time - start_time))) FROM tasks WHERE end_time IS NOT NULL) as avg_duration,
+        (SELECT COUNT(DISTINCT assigned_to) FROM tasks) as total_techs,
+        (SELECT COUNT(*) FROM users) as total_users
+    `);
+    res.json(stats.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to get statistics' });
+  }
+});
 
 // PDF export for task
 app.get('/tasks/:id/pdf', requireAuth, async (req, res) => {
@@ -417,19 +552,66 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Upload photos
+// Health check
+app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date().toISOString() }));
+
+// Upload photos with validation and size limit
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if(!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-const storage = multer.diskStorage({ destination: uploadDir, filename: (req,file,cb)=>{ cb(null, Date.now() + '-' + file.originalname); } });
-const upload = multer({ storage });
 
-app.post('/tasks/:id/photos', requireAuth, upload.single('photo'), async (req,res)=>{
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+const fileFilter = (req, file, cb) => {
+  if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    cb(new Error('Tylko pliki JPEG, PNG i WebP są dozwolone'));
+  } else {
+    cb(null, true);
+  }
+};
+
+const storage = multer.diskStorage({ 
+  destination: uploadDir, 
+  filename: (req, file, cb) => { 
+    cb(null, Date.now() + '-' + path.basename(file.originalname)); 
+  } 
+});
+
+const upload = multer({ 
+  storage, 
+  fileFilter,
+  limits: { fileSize: MAX_FILE_SIZE }
+});
+
+app.post('/tasks/:id/photos', requireAuth, uploadLimiter, upload.single('photo'), async (req, res) => {
   const id = req.params.id;
-  if(!req.file) return res.status(400).json({ error: 'no file' });
-  try{
-    await pool.query('INSERT INTO task_photos(task_id, filename, uploaded_by) VALUES($1,$2,$3)', [id, req.file.filename, req.user.username]);
-    res.json({ filename: req.file.filename });
-  }catch(e){ res.status(500).json({ error: e.message }); }
+  if (!req.file) return res.status(400).json({ error: 'no file provided' });
+  
+  try {
+    // Verify task exists and user has access
+    const task = await pool.query('SELECT * FROM tasks WHERE id=$1', [id]);
+    if (task.rows.length === 0) {
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ error: 'task not found' });
+    }
+    
+    const t = task.rows[0];
+    if (req.user.role !== 'admin' && req.user.username !== t.assigned_to) {
+      fs.unlinkSync(req.file.path);
+      return res.status(403).json({ error: 'forbidden' });
+    }
+
+    await pool.query(
+      'INSERT INTO task_photos(task_id, filename, uploaded_by) VALUES($1,$2,$3)',
+      [id, req.file.filename, req.user.username]
+    );
+    
+    await logEvent(req.user.id, req.user.username, 'upload_photo', 'task_' + id, req.file.filename, req.ip, 'success');
+    res.json({ filename: req.file.filename, size: req.file.size });
+  } catch (e) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    res.status(500).json({ error: 'upload failed' });
+  }
 });
 
 app.get('/tasks/:id/photos', requireAuth, async (req,res)=>{

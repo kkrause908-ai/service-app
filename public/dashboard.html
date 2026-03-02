@@ -4,9 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Service App — Dashboard</title>
-  <link rel="stylesheet" href="/style.css?v=3">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/style.css?v=6">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <meta name="theme-color" content="#104447">
+  <meta name="description" content="Zarządzanie zleceniami serwisowymi">
 </head>
 <body>
   <header class="topbar">
@@ -16,6 +19,7 @@
       <a href="/create.html">Utwórz zlecenie</a>
     </nav>
     <div>
+      <button id="darkModeToggle" title="Zmień motyw" style="background:none;border:none;color:var(--lux3);font-size:1.2rem;cursor:pointer;padding:0.5rem;">🌙</button>
       <span id="who"></span>
       <button id="logout">Wyloguj</button>
     </div>
@@ -29,6 +33,11 @@
           <button id="prevMonth" class="btnNav">&larr;</button>
           <h2 id="monthYear"></h2>
           <button id="nextMonth" class="btnNav">&rarr;</button>
+          <div style="flex:1"></div>
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <span style="font-size:0.9rem;color:var(--muted);">Statystyki:</span>
+            <span style="font-weight:600;color:var(--lux4);min-width:180px;" id="quickStats">-</span>
+          </div>
         </div>
         <div id="calendarDays" class="calendarGrid"></div>
       </div>
@@ -41,6 +50,20 @@
           <h3>Zlecenia</h3>
           <div class="headerActions">
             <input type="text" id="taskSearch" placeholder="Szukaj..." />
+            <select id="statusFilter" style="max-width:150px;padding:0.45rem;">
+              <option value="">Wszystkie statusy</option>
+              <option value="utworzony">Utworzony</option>
+              <option value="w trakcie">W trakcie</option>
+              <option value="zakończony">Zakończony</option>
+              <option value="feedback">Feedback</option>
+            </select>
+            <select id="priorityFilter" style="max-width:100px;padding:0.45rem;">
+              <option value="">Wszystkie priorytety</option>
+              <option value="high">Wysoki</option>
+              <option value="med">Średni</option>
+              <option value="low">Niski</option>
+            </select>
+            <button id="exportBtn" class="btn small" title="Eksportuj do CSV"><i class="fa fa-download"></i></button>
             <button id="refreshTasks" class="btn small"><i class="fa fa-refresh"></i> Odśwież</button>
             <button id="newTaskBtn" class="btn small"><i class="fa fa-plus"></i> Nowe</button>
           </div>
@@ -213,6 +236,7 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="/dashboard.js?v=3" defer></script>
+  <script src="/utils.js?v=2"></script>
+  <script src="/dashboard.js?v=6" defer></script>
 </body>
 </html>

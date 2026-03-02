@@ -33,6 +33,8 @@
       users.forEach(u=>{ const opt = document.createElement('option'); opt.value = u.username; datalist.appendChild(opt); });
     }catch(e){ console.warn(e); }
   }
+  
+  loadUsers();
 
   let map, marker;
   function ensureMap(){
@@ -68,7 +70,8 @@
       map.setView([lat,lon],15);
       if(!marker) marker = L.marker([lat,lon]).addTo(map); else marker.setLatLng([lat,lon]);
       clearFieldError('address');
-    }catch(e){ console.warn(e); showFieldError('address','Błąd geokodowania — spróbuj ponownie'); }
+      Toast.success('Adres znaleziony');
+    }catch(e){ console.warn(e); showFieldError('address','Błąd geokodowania — spróbuj ponownie');  Toast.error('Błąd przy szukaniu adresu'); }
     finally{ findAddrBtn.disabled=false; findAddrBtn.textContent='Znajdź'; }
   });
 
@@ -92,16 +95,16 @@
     if((latv && !lngv) || (!latv && lngv)){ showFieldError('lat','Podaj obie współrzędne lub obie puste'); showFieldError('lng','Podaj obie współrzędne lub obie puste'); valid=false; }
     if(!valid) return;
     try{
+      Toast.info('Tworzenie zlecenia...');
       const res = await fetch('/tasks', { method:'POST', headers, body: JSON.stringify(body) });
       const json = await res.json();
       if(!res.ok) throw new Error(json.error||'Błąd');
-      alert('Zlecenie utworzone'); createForm.reset(); if(marker){ marker.remove(); marker=null; }
-    }catch(e){ alert('Błąd: '+(e.message||e)); }
+      Toast.success('Zlecenie utworzone');
+      createForm.reset();
+      if(marker){ marker.remove(); marker=null; }
+      setTimeout(() => window.location.href = '/dashboard.html', 800);
+    }catch(e){ Toast.error('Błąd: '+(e.message||e)); }
   });
-
-  function showFieldError(name,msg){ const el = createForm.querySelector(`[data-for="${name}"]`); if(el) el.textContent=msg; }
-  function clearFieldError(name){ const el = createForm.querySelector(`[data-for="${name}"]`); if(el) el.textContent=''; }
-  function clearAllFieldErrors(){ createForm.querySelectorAll('.error').forEach(s=>s.textContent=''); }
 
   loadUsers();
 })();

@@ -3,25 +3,71 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Service App — Strona startowa</title>
-  <link rel="stylesheet" href="/style.css">
+  <title>Service App — Zarządzanie zleceniami serwisowymi</title>
+  <link rel="stylesheet" href="/style.css?v=6">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
 </head>
 <body>
-  <main>
-    <header class="hero">
-      <h1>Service CCTV — system zleceń serwisowych</h1>
-      <p>Panel do zarządzania zleceniami montażu i serwisu CCTV. Administrator tworzy zlecenie, przypisuje technika, technik aktualizuje status i raportuje wykonanie. Możesz również wygenerować protokół PDF.</p>
-      <p>
-        <a class="btn" href="/login.html">Zaloguj się</a>
-        <a class="btn secondary" href="/register.html">Utwórz konto</a>
-      </p>
-    </header>
+  <main style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2rem;">
+    <article style="max-width:800px;text-align:center;">
+      <div style="margin-bottom:3rem;">
+        <h1 style="font-size:3rem;background:linear-gradient(135deg,#104447,#58ADB2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0;">Service App</h1>
+        <p style="font-size:1.25rem;color:var(--muted);margin:0.5rem 0;">Zarządzanie zleceniami serwisowymi</p>
+      </div>
 
-    <section class="intro">
-      <h2>Jak to działa</h2>
-      <p>Dodaj zlecenie z adresem, wybierz technika, sprawdź lokalizację na mapie i zatwierdź. Statusy zleceń: <strong>utworzony</strong>, <strong>w trakcie</strong>, <strong>zakończony</strong>, <strong>feedback</strong>.</p>
-    </section>
+      <section style="background:var(--card);padding:2rem;border-radius:var(--radius-lg);margin:2rem 0;border:1px solid var(--border);box-shadow:var(--shadow-md);">
+        <h2 style="color:var(--lux4);margin-top:0;">System do zarządzania zleceniami montażu i serwisu</h2>
+        <p style="color:var(--muted);line-height:1.8;font-size:1.05rem;">
+          Aplikacja pozwala administratorom tworzyć i przydzielać zlecenia technikom, a technikom raportować postęp prac.
+          Obsługuje: systemy CCTV, wentylacyjne, ppoż, KD oraz inne usługi serwisowe.
+        </p>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin:2rem 0;text-align:left;">
+          <div style="padding:1rem;background:var(--card-light);border-radius:var(--radius);border-left:4px solid var(--lux5);">
+            <h4 style="margin-top:0;color:var(--lux5);"><i class="fa fa-check-circle"></i> Dla administratorów</h4>
+            <ul style="margin:0.5rem 0;padding-left:1.5rem;color:var(--muted);">
+              <li>Tworzenie i edytowanie zleceń</li>
+              <li>Przydzielanie techników</li>
+              <li>Śledzenie postępu</li>
+              <li>Eksport raportów</li>
+              <li>Zarządzanie użytkownikami</li>
+            </ul>
+          </div>
+          <div style="padding:1rem;background:var(--card-light);border-radius:var(--radius);border-left:4px solid var(--lux1);">
+            <h4 style="margin-top:0;color:var(--lux1);"><i class="fa fa-wrench"></i> Dla techników</h4>
+            <ul style="margin:0.5rem 0;padding-left:1.5rem;color:var(--muted);">
+              <li>Przeglądanie przydzielonych zleceń</li>
+              <li>Śledzenie zleceń na mapie</li>
+              <li>Raportowanie postępu</li>
+              <li>Przesyłanie zdjęć i dokumentów</li>
+              <li>Podpisy odbiorcy</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin:2rem 0;">
+        <a href="/login.html" style="display:inline-block;background:var(--lux5);color:#063233;padding:0.875rem 2rem;border-radius:var(--radius);font-weight:600;text-decoration:none;transition:var(--transition);box-shadow:var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
+          <i class="fa fa-sign-in"></i> Zaloguj się
+        </a>
+        <a href="/register.html" style="display:inline-block;background:transparent;color:var(--lux4);border:2px solid var(--border);padding:0.75rem 2rem;border-radius:var(--radius);font-weight:600;text-decoration:none;transition:var(--transition);" onmouseover="this.style.backgroundColor='var(--card-light)';this.style.borderColor='var(--lux5)'" onmouseout="this.style.backgroundColor='transparent';this.style.borderColor='var(--border)'">
+          <i class="fa fa-user-plus"></i> Utwórz konto
+        </a>
+      </div>
+
+      <footer style="margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border);color:var(--muted);font-size:0.9rem;">
+        <p style="margin:0;">Service App v1.1 • System zarządzania zleceniami serwisowymi</p>
+      </footer>
+    </article>
   </main>
-  <script src="/app.js"></script>
+  <script src="/utils.js?v=2"></script>
+  <script>
+    // Register Service Worker for PWA offline support
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('Service Worker registered'))
+        .catch(err => console.log('SW registration failed:', err));
+    }
+  </script>
 </body>
 </html>
