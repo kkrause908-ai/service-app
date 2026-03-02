@@ -3,71 +3,61 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Service App — Zarządzanie zleceniami serwisowymi</title>
-  <link rel="stylesheet" href="/style.css?v=6">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+  <title>Service App</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #F2E2C4; }
+    .landing { text-align: center; padding: 2rem; max-width: 600px; }
+    .landing h1 { font-size: 3rem; color: #2E3C8C; margin: 0; }
+    .landing .subtitle { font-size: 1.2rem; color: #403B22; margin: 0.5rem 0 2rem; }
+    .landing .box { background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin: 2rem 0; }
+    .landing .box h2 { color: #2E3C8C; font-size: 1.2rem; margin: 0 0 1rem; }
+    .landing .box p { color: #666; line-height: 1.8; }
+    .landing .features { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; text-align: left; }
+    .landing .feature { background: #F2E2C4; padding: 1rem; border-radius: 8px; border-left: 3px solid #2E3C8C; }
+    .landing .feature h4 { color: #2E3C8C; margin: 0 0 0.5rem; font-size: 0.9rem; }
+    .landing .feature ul { margin: 0; padding-left: 1rem; color: #666; font-size: 0.8rem; }
+    .landing .btn-group { display: flex; gap: 1rem; justify-content: center; }
+    .landing .btn-primary { background: #2E3C8C; color: #fff; padding: 0.75rem 2rem; border-radius: 6px; text-decoration: none; font-weight: 600; }
+    .landing .btn-secondary { background: transparent; color: #2E3C8C; border: 2px solid #2E3C8C; padding: 0.7rem 2rem; border-radius: 6px; text-decoration: none; font-weight: 600; }
+  </style>
 </head>
 <body>
-  <main style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2rem;">
-    <article style="max-width:800px;text-align:center;">
-      <div style="margin-bottom:3rem;">
-        <h1 style="font-size:3rem;background:linear-gradient(135deg,#104447,#58ADB2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0;">Service App</h1>
-        <p style="font-size:1.25rem;color:var(--muted);margin:0.5rem 0;">Zarządzanie zleceniami serwisowymi</p>
-      </div>
-
-      <section style="background:var(--card);padding:2rem;border-radius:var(--radius-lg);margin:2rem 0;border:1px solid var(--border);box-shadow:var(--shadow-md);">
-        <h2 style="color:var(--lux4);margin-top:0;">System do zarządzania zleceniami montażu i serwisu</h2>
-        <p style="color:var(--muted);line-height:1.8;font-size:1.05rem;">
-          Aplikacja pozwala administratorom tworzyć i przydzielać zlecenia technikom, a technikom raportować postęp prac.
-          Obsługuje: systemy CCTV, wentylacyjne, ppoż, KD oraz inne usługi serwisowe.
-        </p>
-        
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin:2rem 0;text-align:left;">
-          <div style="padding:1rem;background:var(--card-light);border-radius:var(--radius);border-left:4px solid var(--lux5);">
-            <h4 style="margin-top:0;color:var(--lux5);"><i class="fa fa-check-circle"></i> Dla administratorów</h4>
-            <ul style="margin:0.5rem 0;padding-left:1.5rem;color:var(--muted);">
-              <li>Tworzenie i edytowanie zleceń</li>
-              <li>Przydzielanie techników</li>
-              <li>Śledzenie postępu</li>
-              <li>Eksport raportów</li>
-              <li>Zarządzanie użytkownikami</li>
-            </ul>
-          </div>
-          <div style="padding:1rem;background:var(--card-light);border-radius:var(--radius);border-left:4px solid var(--lux1);">
-            <h4 style="margin-top:0;color:var(--lux1);"><i class="fa fa-wrench"></i> Dla techników</h4>
-            <ul style="margin:0.5rem 0;padding-left:1.5rem;color:var(--muted);">
-              <li>Przeglądanie przydzielonych zleceń</li>
-              <li>Śledzenie zleceń na mapie</li>
-              <li>Raportowanie postępu</li>
-              <li>Przesyłanie zdjęć i dokumentów</li>
-              <li>Podpisy odbiorcy</li>
-            </ul>
-          </div>
+  <div class="landing">
+    <h1>Service App</h1>
+    <p class="subtitle">Zarządzanie zleceniami serwisowymi</p>
+    
+    <div class="box">
+      <h2>System do zarządzania zleceniami</h2>
+      <p>Aplikacja dla serwisantów, monterów i instalatorów. Twórz zlecenia, przypisuj techników, śledź postęp prac.</p>
+      
+      <div class="features">
+        <div class="feature">
+          <h4><i class="fa fa-user-shield"></i> Dla adminów</h4>
+          <ul>
+            <li>Tworzenie zleceń</li>
+            <li>Przydzielanie techników</li>
+            <li>Raporty PDF</li>
+          </ul>
         </div>
-      </section>
-
-      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin:2rem 0;">
-        <a href="/login.html" style="display:inline-block;background:var(--lux5);color:#063233;padding:0.875rem 2rem;border-radius:var(--radius);font-weight:600;text-decoration:none;transition:var(--transition);box-shadow:var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
-          <i class="fa fa-sign-in"></i> Zaloguj się
-        </a>
-        <a href="/register.html" style="display:inline-block;background:transparent;color:var(--lux4);border:2px solid var(--border);padding:0.75rem 2rem;border-radius:var(--radius);font-weight:600;text-decoration:none;transition:var(--transition);" onmouseover="this.style.backgroundColor='var(--card-light)';this.style.borderColor='var(--lux5)'" onmouseout="this.style.backgroundColor='transparent';this.style.borderColor='var(--border)'">
-          <i class="fa fa-user-plus"></i> Utwórz konto
-        </a>
+        <div class="feature">
+          <h4><i class="fa fa-wrench"></i> Dla techników</h4>
+          <ul>
+            <li>Lista zleceń</li>
+            <li>Mapa lokalizacji</li>
+            <li>Zdjęcia i podpisy</li>
+          </ul>
+        </div>
       </div>
-
-      <footer style="margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border);color:var(--muted);font-size:0.9rem;">
-        <p style="margin:0;">Service App v1.1 • System zarządzania zleceniami serwisowymi</p>
-      </footer>
-    </article>
-  </main>
-  <script src="/utils.js?v=2"></script>
-  <script>
-    // Register Service Worker for PWA offline support
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('Service Worker registered'))
-        .catch(err => console.log('SW registration failed:', err));
-    }
-  </script>
+      
+      <div class="btn-group">
+        <a href="/login.html" class="btn-primary">Zaloguj się</a>
+        <a href="/register.html" class="btn-secondary">Rejestracja</a>
+      </div>
+    </div>
+    
+    <p style="color: #666; font-size: 0.85rem;">Service App v1.1</p>
+  </div>
 </body>
 </html>

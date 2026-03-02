@@ -3,31 +3,86 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Service App — Rejestracja</title>
+  <title>Rejestracja — Service App</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #F2E2C4; }
+    .register-page { text-align: center; padding: 2rem; }
+    .register-page h1 { font-size: 2rem; color: #2E3C8C; margin-bottom: 0.5rem; }
+    .register-page p { color: #666; margin-bottom: 1.5rem; }
+    .register-box { 
+      background: #fff; 
+      padding: 1.5rem; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1); 
+      max-width: 350px;
+      margin: 0 auto;
+    }
+    .register-box input, .register-box select { 
+      width: 100%; padding: 0.6rem; margin-bottom: 0.75rem; 
+      border: 1px solid #e5e5e5; border-radius: 4px; font-size: 0.9rem;
+    }
+    .register-box button { 
+      width: 100%; padding: 0.75rem; 
+      background: #2E3C8C; color: #fff; border: none; 
+      border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    .register-box button:hover { opacity: 0.9; }
+    .links { margin-top: 1rem; font-size: 0.9rem; }
+    .links a { color: #2E3C8C; text-decoration: none; }
+    .error { color: #c0392b; font-size: 0.8rem; margin-bottom: 0.75rem; display: none; }
+  </style>
 </head>
 <body>
-  <main class="auth">
-    <h1>Utwórz konto</h1>
-    <form id="registerForm">
-      <label>Nazwa użytkownika
-        <input type="text" name="username" required>
-      </label>
-      <label>Hasło
-        <input type="password" name="password" required>
-      </label>
-      <label>Rola
+  <div class="register-page">
+    <h1>Rejestracja</h1>
+    <p>Utwórz konto w Service App</p>
+    
+    <div class="register-box">
+      <p class="error" id="error"></p>
+      <form id="registerForm">
+        <input type="text" name="username" placeholder="Login (min 3 znaki)" required minlength="3">
+        <input type="password" name="password" placeholder="Hasło (min 6 znaków)" required minlength="6">
         <select name="role">
-          <option value="user">Użytkownik</option>
+          <option value="user">Technik</option>
           <option value="admin">Administrator</option>
         </select>
-      </label>
-      <div class="formActions"><button type="submit">Zarejestruj</button></div>
-    </form>
-    <p id="msg" class="muted"></p>
-    <p><a href="/login.html">Masz konto? Zaloguj się</a></p>
-  </main>
+        <button type="submit">Zarejestruj się</button>
+      </form>
+      <div class="links">
+        <a href="/login.html">Masz konto? Zaloguj się</a>
+      </div>
+    </div>
+  </div>
+
   <script src="/utils.js"></script>
-  <script src="/register.js" defer></script>
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      
+      const res = await fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          username: fd.get('username'), 
+          password: fd.get('password'),
+          role: fd.get('role')
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        Toast.success('Konto utworzone! Możesz się zalogować.');
+        setTimeout(() => window.location.href = '/login.html', 1500);
+      } else {
+        const err = document.getElementById('error');
+        err.textContent = data.error || 'Błąd rejestracji';
+        err.style.display = 'block';
+      }
+    });
+  </script>
 </body>
 </html>

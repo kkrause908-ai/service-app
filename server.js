@@ -18,7 +18,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret_in_production';
 
 const app = express();
 app.use(cors());
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb' }));
 app.use(mongoSanitize());
@@ -161,9 +163,10 @@ pool.query(`
   }catch(e){ console.error('Task seeding failed', e); }
 })();
 
-// Seed admin user when ADMIN_PASSWORD provided
-  if (process.env.ADMIN_PASSWORD) {
-    (async () => {
+// Seed admin user with retry (in case tables aren't ready yet)
+if (process.env.ADMIN_PASSWORD) {
+  (async () => {
+    for (let i = 0; i < 20; i++) {
       try {
         const { rows } = await pool.query('SELECT id FROM users WHERE username=$1', ['admin']);
         if (rows.length === 0) {
@@ -171,18 +174,25 @@ pool.query(`
           await pool.query('INSERT INTO users(username,password,role) VALUES($1,$2,$3)', ['admin', hashed, 'admin']);
           console.log('Admin user created: username=admin');
         }
-        // seed a default regular user for testing
-        const { rows: urows } = await pool.query('SELECT id FROM users WHERE username=$1', ['user']);
-        if (urows.length === 0) {
-          const hup = await bcrypt.hash(process.env.DEFAULT_USER_PASSWORD || 'user123', 10);
-          await pool.query('INSERT INTO users(username,password,role) VALUES($1,$2,$3)', ['user', hup, 'user']);
-          console.log('Default user created: username=user');
-        }
+        break;
       } catch (e) {
-        console.error('Error creating admin user', e);
+        // likely table not ready yet; wait and retry
+        await new Promise(res => setTimeout(res, 1000));
       }
-    })();
-  }
+    }
+    // ensure default test user exists
+    try {
+      const { rows: urows } = await pool.query('SELECT id FROM users WHERE username=$1', ['user']);
+      if (urows.length === 0) {
+        const hup = await bcrypt.hash(process.env.DEFAULT_USER_PASSWORD || 'user123', 10);
+        await pool.query('INSERT INTO users(username,password,role) VALUES($1,$2,$3)', ['user', hup, 'user']);
+        console.log('Default user created: username=user');
+      }
+    } catch (e) {
+      console.error('Error ensuring default user', e);
+    }
+  })();
+}
 
 // expose simple users list for suggestions (authenticated)
 app.get('/users', requireAuth, async (req, res) => {
@@ -373,6 +383,142 @@ function requireRole(role) {
 }
 
 app.get('/me', requireAuth, (req, res) => res.json(req.user));
+
+// Migration & seed initialization: ensure schema exists before server starts
+async function ensureSchemaAndSeed() {
+  // Create/alter tables to include required columns
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      fault TEXT,
+      repair_procedure TEXT,
+      status VARCHAR(50) DEFAULT 'utworzony',
+      assigned_to VARCHAR(100),
+      assigned_by VARCHAR(100) DEFAULT 'kierownik',
+      address TEXT,
+      lat DOUBLE PRECISION,
+      lng DOUBLE PRECISION,
+      priority VARCHAR(10) DEFAULT 'med',
+      start_time TIMESTAMP,
+      end_time TIMESTAMP,
+      executor_signature TEXT,
+      receiver_signature TEXT,
+      repair_short TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(100) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      role VARCHAR(20) DEFAULT 'user',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    ALTER TABLE tasks
+      ADD COLUMN IF NOT EXISTS address TEXT,
+      ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION,
+      ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION
+  `);
+
+  await pool.query(`
+    ALTER TABLE tasks
+      ADD COLUMN IF NOT EXISTS priority VARCHAR(10) DEFAULT 'med'
+  `);
+
+  await pool.query(`
+    ALTER TABLE tasks ALTER COLUMN status SET DEFAULT 'utworzony'
+  `);
+
+  await pool.query(`
+    ALTER TABLE tasks
+      ADD COLUMN IF NOT EXISTS start_time TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS end_time TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS executor_signature TEXT,
+      ADD COLUMN IF NOT EXISTS receiver_signature TEXT,
+      ADD COLUMN IF NOT EXISTS repair_short TEXT
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS task_photos (
+      id SERIAL PRIMARY KEY,
+      task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      uploaded_by VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS task_history (
+      id SERIAL PRIMARY KEY,
+      task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+      username VARCHAR(100),
+      action TEXT,
+      details TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS event_logs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER,
+      username VARCHAR(100),
+      action VARCHAR(255),
+      resource VARCHAR(255),
+      details TEXT,
+      ip_address VARCHAR(45),
+      status VARCHAR(20),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Seed demo data if needed
+  try {
+    const cnt = await pool.query('SELECT COUNT(*) FROM tasks');
+    if (+cnt.rows[0].count === 0) {
+      await pool.query(`
+        INSERT INTO tasks(title,description,status,priority,assigned_to,address) VALUES
+          ('Pierwsze zlecenie','Testowy opis','utworzony','med','user','ul. Przykładowa 1'),
+          ('Awaria sieci','Sprawdź połączenie','w trakcie','high','user','ul. Druga 2'),
+          ('Serwis urządzenia','Regularny przegląd','zakończony','low','admin','ul. Trzecia 3')
+      `);
+    }
+  } catch (e) {
+    // ignore seed error here; we'll retry on next start
+  }
+
+  // Admin & default user seeds (respect .env)
+  if (process.env.ADMIN_PASSWORD) {
+    try {
+      const { rows } = await pool.query('SELECT id FROM users WHERE username=$1', ['admin']);
+      if (rows.length === 0) {
+        const hashed = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
+        await pool.query('INSERT INTO users(username,password,role) VALUES($1,$2,$3)', ['admin', hashed, 'admin']);
+        console.log('Admin user created: username=admin');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+  try {
+    const { rows: urows } = await pool.query('SELECT id FROM users WHERE username=$1', ['user']);
+    if (urows.length === 0) {
+      const hup = await bcrypt.hash(process.env.DEFAULT_USER_PASSWORD || 'user123', 10);
+      await pool.query('INSERT INTO users(username,password,role) VALUES($1,$2,$3)', ['user', hup, 'user']);
+      console.log('Default user created: username=user');
+    }
+  } catch (e) {
+    // ignore
+  }
+}
 
 // Statistics endpoint
 app.get('/stats', requireAuth, async (req, res) => {
@@ -630,4 +776,12 @@ app.get('/tasks/:id/history', requireAuth, async (req,res)=>{
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+(async () => {
+  try {
+    await ensureSchemaAndSeed();
+  } catch (e) {
+    console.error('Initialization failed', e);
+    process.exit(1);
+  }
+  app.listen(port, () => console.log(`Server running on port ${port}`));
+})();

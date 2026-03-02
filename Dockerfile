@@ -1,7 +1,24 @@
-FROM node:20.20.0-alpine3.23
+FROM node:20-bullseye
+
 WORKDIR /app
-COPY package.json ./
-RUN npm install --production --no-optional --legacy-peer-deps && npm cache clean --force
+
+# Install dependencies first (cached)
+COPY package*.json ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+# Copy source
 COPY . .
+
+# Copy wait script for DB readiness
+COPY wait-for-db.sh /wait-for-db.sh
+RUN chmod +x /wait-for-db.sh
+
+# Expose port
 EXPOSE 3000
-CMD ["node", "server.js"]
+
+# Add wait script for DB readiness
+COPY wait-for-db.sh /usr/local/bin/wait-for-db.sh
+RUN chmod +x /usr/local/bin/wait-for-db.sh
+
+# Default command: wait for DB then start in dev mode for debugging
+CMD ["bash","-lc","/wait-for-db.sh && npm run start"]

@@ -1,34 +1,49 @@
+version: '3.8'
 services:
-  postgres:
-    image: postgres:16-alpine
+  db:
+    image: postgres:15
+    container_name: service_app_db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: service_app
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
+      POSTGRES_DB: service_app
+    ports:
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d service_app"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
 
-  backend:
+  app:
     build: .
-    ports:
-      - "3001:3000"
-    volumes:
-      - .:/app   # mount local code into container so changes propagate without rebuild
-      - /app/node_modules   # keep the image's node_modules directory (bind hides it otherwise)
-    environment:
-      DATABASE_URL: "postgresql://user:pass@postgres:5432/service_app?sslmode=disable"
-      NODE_ENV: "production"
-      JWT_SECRET: "supersecret_dev_change_me"
-      # Optional: set ADMIN_PASSWORD to auto-create initial admin user
-      ADMIN_PASSWORD: "admin123"
+    container_name: service_app_api
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://user:pass@db:5432/service_app
+      JWT_SECRET: change_this_secret_in_production
+      ADMIN_PASSWORD: admin
+      DEFAULT_USER_PASSWORD: user123
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    # no host volume for app to ensure node_modules from image are used
+    command: ["bash","-lc","/wait-for-db.sh && npm run start"]
+    env_file:
+      - .env
+
+  adminer:
+    image: adminer
+    container_name: service_app_adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
 
 volumes:
-  pgdata:
+  db_data:

@@ -4,239 +4,415 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Service App — Dashboard</title>
-  <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/style.css?v=6">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-  <meta name="theme-color" content="#104447">
-  <meta name="description" content="Zarządzanie zleceniami serwisowymi">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
   <header class="topbar">
     <h1>Service App</h1>
     <nav class="menu">
-      <a href="/dashboard.html">Dashboard</a>
-      <a href="/create.html">Utwórz zlecenie</a>
+      <a href="/dashboard.html"><i class="fa fa-home"></i> Dashboard</a>
+      <a href="/create.html"><i class="fa fa-plus"></i> Nowe zlecenie</a>
     </nav>
     <div>
-      <button id="darkModeToggle" title="Zmień motyw" style="background:none;border:none;color:var(--lux3);font-size:1.2rem;cursor:pointer;padding:0.5rem;">🌙</button>
-      <span id="who"></span>
+      <span id="who" style="margin-right: 0.75rem;"></span>
       <button id="logout">Wyloguj</button>
     </div>
   </header>
 
-  <main class="dashboardMain">
-    <!-- Kalendarz -->
-    <section class="calendarSection">
-      <div class="calendarContainer">
-        <div class="calendarHeader">
-          <button id="prevMonth" class="btnNav">&larr;</button>
-          <h2 id="monthYear"></h2>
-          <button id="nextMonth" class="btnNav">&rarr;</button>
-          <div style="flex:1"></div>
-          <div style="display:flex;gap:0.75rem;align-items:center;">
-            <span style="font-size:0.9rem;color:var(--muted);">Statystyki:</span>
-            <span style="font-weight:600;color:var(--lux4);min-width:180px;" id="quickStats">-</span>
-          </div>
-        </div>
-        <div id="calendarDays" class="calendarGrid"></div>
+  <main class="main">
+    <!-- Lista zleceń -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2><i class="fa fa-list"></i> Zlecenia</h2>
+        <button id="newTaskBtn" class="btn" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+          <i class="fa fa-plus"></i> Nowe
+        </button>
       </div>
+      
+      <div class="filters">
+        <input type="text" id="taskSearch" placeholder="Szukaj...">
+        <select id="statusFilter">
+          <option value="">Status</option>
+          <option value="utworzony">Utworzony</option>
+          <option value="w trakcie">W trakcie</option>
+          <option value="zakończony">Zakończony</option>
+        </select>
+        <select id="priorityFilter">
+          <option value="">Priorytet</option>
+          <option value="high">Wysoki</option>
+          <option value="med">Średni</option>
+          <option value="low">Niski</option>
+        </select>
+      </div>
+      
+      <div id="tasksList" class="task-list"></div>
+    </aside>
+
+    <!-- Szczegóły zlecenia -->
+    <section class="content" id="contentArea">
+      <div class="empty-state" id="emptyState">
+        <h3>Witaj w Service App</h3>
+        <p>Wybierz zlecenie z listy lub utwórz nowe</p>
+        <button class="btn" style="margin-top: 1rem;" onclick="document.getElementById('newTaskBtn').click()">
+          <i class="fa fa-plus"></i> Utwórz zlecenie
+        </button>
+      </div>
+      
+      <div id="taskDetail" style="display: none;"></div>
     </section>
-
-    <!-- Lista zadań i detail -->
-    <div class="dashboardContent">
-      <section class="tasksListSection">
-        <div class="sectionHeader">
-          <h3>Zlecenia</h3>
-          <div class="headerActions">
-            <input type="text" id="taskSearch" placeholder="Szukaj..." />
-            <select id="statusFilter" style="max-width:150px;padding:0.45rem;">
-              <option value="">Wszystkie statusy</option>
-              <option value="utworzony">Utworzony</option>
-              <option value="w trakcie">W trakcie</option>
-              <option value="zakończony">Zakończony</option>
-              <option value="feedback">Feedback</option>
-            </select>
-            <select id="priorityFilter" style="max-width:100px;padding:0.45rem;">
-              <option value="">Wszystkie priorytety</option>
-              <option value="high">Wysoki</option>
-              <option value="med">Średni</option>
-              <option value="low">Niski</option>
-            </select>
-            <button id="exportBtn" class="btn small" title="Eksportuj do CSV"><i class="fa fa-download"></i></button>
-            <button id="refreshTasks" class="btn small"><i class="fa fa-refresh"></i> Odśwież</button>
-            <button id="newTaskBtn" class="btn small"><i class="fa fa-plus"></i> Nowe</button>
-          </div>
-        </div>
-        <div id="tasksList" class="tasksListContainer"></div>
-      </section>
-
-      <!-- Detail panel prawy -->
-      <aside class="taskDetailSidebar" id="detailSidebar" style="display:none">
-        <div class="detailHeader">
-          <button id="closeDetail" class="btnClose">&times;</button>
-        </div>
-        <div id="taskDetail" class="taskDetailContent">
-          <h2 id="taskTitle">Wybierz zlecenie</h2>
-          <p id="taskMeta" class="muted"></p>
-          <p id="taskDesc"></p>
-
-          <div class="taskTimes">
-            <p><strong>Rozpoczęcie:</strong> <span id="taskStart">-</span></p>
-            <p><strong>Zakończenie:</strong> <span id="taskEnd">-</span></p>
-          </div>
-
-          <div id="taskActions" class="taskActions">
-            <button id="startBtn" class="btn"><i class="fa fa-play"></i> Rozpocznij</button>
-            <button id="finishBtn" class="btn"><i class="fa fa-check"></i> Zakończ</button>
-          </div>
-
-          <label class="field">Krótkie podsumowanie naprawy
-            <textarea id="repairShort" rows="3" placeholder="Opisz co zostało zrobione..."></textarea>
-          </label>
-          <button id="saveShort" class="btn small">Zapisz opis</button>
-
-          <div class="detailActions">
-            <button id="editBtn" class="btn" style="display:none"><i class="fa fa-edit"></i> Edytuj</button>
-            <button id="deleteBtn" class="btn secondary" style="display:none"><i class="fa fa-trash"></i> Usuń</button>
-            <button id="openMap" class="btn small"><i class="fa fa-map"></i> Mapa</button>
-            <button id="genPdf" class="btn small"><i class="fa fa-file-pdf"></i> PDF</button>
-          </div>
-
-          <div id="map" class="mapDetail"></div>
-
-          <div class="photosArea">
-            <h4><i class="fa fa-camera"></i> Zdjęcia</h4>
-            <div id="photosList" class="photosList"></div>
-            <div class="uploadControls">
-              <input type="file" id="photoInput" accept="image/*">
-              <button id="uploadPhoto" class="btn small">Wyślij zdjęcie</button>
-            </div>
-          </div>
-
-          <div class="historyArea">
-            <h4><i class="fa fa-history"></i> Historia</h4>
-            <ul id="history" class="historyList"></ul>
-          </div>
-
-          <div class="signatureSection">
-            <button id="executorSignBtn" data-sign-executor class="btn small"><i class="fa fa-pen"></i> Podpis wykonawcy</button>
-            <button id="receiverSignBtn" data-sign-receiver class="btn small"><i class="fa fa-pen"></i> Podpis odbiorcy</button>
-          </div>
-        </div>
-      </aside>
-    </div>
   </main>
 
-  <!-- Signature Modal -->
-  <div id="signatureModal" class="modal" style="display:none">
-    <div class="modalContent">
-      <h3>Podpisz</h3>
-      <canvas id="signCanvas" width="600" height="200" style="border:1px solid var(--lux4);border-radius:6px;max-width:100%"></canvas>
-      <div class="modalActions">
-        <button id="saveSign" class="btn">Zapisz</button>
-        <button id="clearSign" class="btn secondary">Wyczyść</button>
-        <button id="cancelSign" class="btn secondary">Anuluj</button>
+  <!-- Przycisk kalendarza -->
+  <button class="calendar-toggle" id="calendarToggle" title="Kalendarz">
+    <i class="fa fa-calendar"></i>
+  </button>
+
+  <!-- Wysuwany kalendarz -->
+  <div class="calendar-panel" id="calendarPanel">
+    <div class="calendar-nav">
+      <button class="btn secondary" id="prevMonth" style="padding: 0.3rem 0.6rem;">
+        <i class="fa fa-chevron-left"></i>
+      </button>
+      <h3 id="monthYear"></h3>
+      <button class="btn secondary" id="nextMonth" style="padding: 0.3rem 0.6rem;">
+        <i class="fa fa-chevron-right"></i>
+      </button>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+
+  <!-- Modal nowego zlecenia -->
+  <div class="modal" id="createModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Nowe zlecenie</h3>
+        <button class="modal-close" id="closeCreate">&times;</button>
       </div>
-    </div>
-  </div>
-
-  <!-- Edit Task Modal -->
-  <div id="editModal" class="modal" style="display:none">
-    <div class="modalContent modalLarge">
-      <h3>Edytuj zlecenie</h3>
-      <form id="editForm">
-        <label class="field">Tytuł
-          <input name="title" required>
-        </label>
-        <label class="field">Opis
-          <textarea name="description" rows="3"></textarea>
-        </label>
-        <label class="field">Przypisz do
-          <input name="assigned_to" list="usersEditList" placeholder="Nazwa użytkownika">
-          <datalist id="usersEditList"></datalist>
-        </label>
-        <div class="row">
-          <label>Status
+      <form id="createForm">
+        <div class="form-group">
+          <label>Tytuł *</label>
+          <input name="title" required placeholder="Tytuł zlecenia">
+        </div>
+        <div class="form-group">
+          <label>Przypisz do</label>
+          <input name="assigned_to" list="usersList" placeholder="Technik">
+          <datalist id="usersList"></datalist>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div class="form-group">
+            <label>Status</label>
             <select name="status">
               <option value="utworzony">Utworzony</option>
               <option value="w trakcie">W trakcie</option>
               <option value="zakończony">Zakończony</option>
-              <option value="feedback">Feedback</option>
             </select>
-          </label>
-          <label>Priorytet
+          </div>
+          <div class="form-group">
+            <label>Priorytet</label>
             <select name="priority">
               <option value="high">Wysoki</option>
-              <option value="med">Średni</option>
+              <option value="med" selected>Średni</option>
               <option value="low">Niski</option>
             </select>
-          </label>
+          </div>
         </div>
-        <label class="field">Adres
+        <div class="form-group">
+          <label>Adres</label>
           <input name="address" placeholder="Adres zlecenia">
-        </label>
-        <div class="row">
-          <label>Lat <input name="lat" type="number" step="any" placeholder="Szerokość"></label>
-          <label>Lng <input name="lng" type="number" step="any" placeholder="Długość"></label>
         </div>
-        <div class="modalActions">
-          <button type="submit" class="btn">Zapisz zmiany</button>
-          <button type="button" id="closeEdit" class="btn secondary">Anuluj</button>
+        <div class="form-group">
+          <label>Opis</label>
+          <textarea name="description" rows="3" placeholder="Opis zlecenia..."></textarea>
         </div>
+        <button type="submit" class="btn" style="width: 100%;">Utwórz zlecenie</button>
       </form>
     </div>
   </div>
 
-  <!-- Create Task Modal -->
-  <div id="createModal" class="modal" style="display:none">
-    <div class="modalContent modalLarge">
-      <h3>Nowe zlecenie</h3>
-      <form id="createModalForm">
-        <label class="field">Tytuł
-          <input name="title" required>
-        </label>
-        <label class="field">Opis
-          <textarea name="description" rows="3"></textarea>
-        </label>
-        <label class="field">Przypisz do
-          <input name="assigned_to" list="usersEditList" placeholder="Nazwa użytkownika">
-          <datalist id="usersEditList"></datalist>
-        </label>
-        <div class="row">
-          <label>Status
-            <select name="status">
-              <option value="utworzony">Utworzony</option>
-              <option value="w trakcie">W trakcie</option>
-              <option value="zakończony">Zakończony</option>
-              <option value="feedback">Feedback</option>
-            </select>
-          </label>
-          <label>Priorytet
-            <select name="priority">
-              <option value="high">Wysoki</option>
-              <option value="med">Średni</option>
-              <option value="low">Niski</option>
-            </select>
-          </label>
-        </div>
-        <label class="field">Adres
-          <input name="address" placeholder="Adres zlecenia">
-        </label>
-        <div class="row">
-          <label>Lat <input name="lat" type="number" step="any" placeholder="Szerokość"></label>
-          <label>Lng <input name="lng" type="number" step="any" placeholder="Długość"></label>
-        </div>
-        <div class="modalActions">
-          <button type="submit" class="btn">Utwórz</button>
-          <button type="button" id="closeCreate" class="btn secondary">Anuluj</button>
-        </div>
-      </form>
-    </div>
-  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/utils.js"></script>
+  <script>
+    // Dashboard Logic
+    (function() {
+      const token = localStorage.getItem('token');
+      if (!token) { window.location.href = '/login.html'; return; }
+      
+      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+      let allTasks = [];
+      let currentTask = null;
+      let calendarOpen = false;
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="/utils.js?v=2"></script>
-  <script src="/dashboard.js?v=6" defer></script>
+      // Calendar toggle
+      document.getElementById('calendarToggle').addEventListener('click', () => {
+        calendarOpen = !calendarOpen;
+        document.getElementById('calendarPanel').classList.toggle('open', calendarOpen);
+      });
+
+      // Logout
+      document.getElementById('logout').addEventListener('click', () => {
+        localStorage.removeItem('token');
+        window.location.href = '/login.html';
+      });
+
+      // Load user info
+      fetch('/me', { headers }).then(r => r.json()).then(user => {
+        document.getElementById('who').textContent = user.username + ' (' + user.role + ')';
+      }).catch(() => window.location.href = '/login.html');
+
+      // Load users for datalist
+      fetch('/users', { headers }).then(r => r.json()).then(users => {
+        const dl = document.getElementById('usersList');
+        users.forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u.username;
+          dl.appendChild(opt);
+        });
+      });
+
+      // Load tasks
+      async function loadTasks() {
+        const res = await fetch('/tasks', { headers });
+        const data = await res.json();
+        allTasks = data.data || [];
+        renderTasks();
+      }
+      loadTasks();
+
+      // Render task list
+      function renderTasks() {
+        const search = document.getElementById('taskSearch').value.toLowerCase();
+        const status = document.getElementById('statusFilter').value;
+        const priority = document.getElementById('priorityFilter').value;
+        
+        let tasks = allTasks.filter(t => {
+          if (search && !t.title.toLowerCase().includes(search)) return false;
+          if (status && t.status !== status) return false;
+          if (priority && t.priority !== priority) return false;
+          return true;
+        });
+
+        const container = document.getElementById('tasksList');
+        if (tasks.length === 0) {
+          container.innerHTML = '<p style="text-align:center;padding:2rem;color:#666;">Brak zleceń</p>';
+          return;
+        }
+
+        container.innerHTML = tasks.map(t => `
+          <div class="task-item" data-id="${t.id}">
+            <h4>${t.title}</h4>
+            <p>${t.assigned_to || 'Nieprzypisane'} • ${t.status}</p>
+            <span class="badge ${t.priority}">${t.priority === 'high' ? 'Wysoki' : t.priority === 'med' ? 'Średni' : 'Niski'}</span>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.task-item').forEach(el => {
+          el.addEventListener('click', () => showTaskDetail(el.dataset.id));
+        });
+      }
+
+      document.getElementById('taskSearch').addEventListener('input', renderTasks);
+      document.getElementById('statusFilter').addEventListener('change', renderTasks);
+      document.getElementById('priorityFilter').addEventListener('change', renderTasks);
+
+      // Show task detail
+      async function showTaskDetail(id) {
+        const task = allTasks.find(t => t.id == id);
+        if (!task) return;
+        currentTask = task;
+        
+        document.getElementById('emptyState').style.display = 'none';
+        const detail = document.getElementById('taskDetail');
+        detail.style.display = 'block';
+        
+        detail.innerHTML = `
+          <div class="task-detail">
+            <div class="content-header">
+              <h2>${task.title}</h2>
+              <button class="btn" onclick="window.location.href='/create.html'">
+                <i class="fa fa-plus"></i> Nowe
+              </button>
+            </div>
+            
+            <div class="detail-row">
+              <span class="detail-label">Status:</span>
+              <span>${task.status}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Priorytet:</span>
+              <span class="badge ${task.priority}">${task.priority}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Przypisane do:</span>
+              <span>${task.assigned_to || 'Nieprzypisane'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Adres:</span>
+              <span>${task.address || '-'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Opis:</span>
+              <span>${task.description || '-'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Utworzono:</span>
+              <span>${new Date(task.created_at).toLocaleString('pl-PL')}</span>
+            </div>
+            
+            <div class="actions">
+              <button class="btn" onclick="startTask(${task.id})">
+                <i class="fa fa-play"></i> Rozpocznij
+              </button>
+              <button class="btn" onclick="finishTask(${task.id})">
+                <i class="fa fa-check"></i> Zakończ
+              </button>
+              <button class="btn secondary" onclick="editTask(${task.id})">
+                <i class="fa fa-edit"></i> Edytuj
+              </button>
+              <button class="btn" style="background:#27ae60;" onclick="window.open('/tasks/${task.id}/pdf','_blank')">
+                <i class="fa fa-file-pdf"></i> PDF
+              </button>
+            </div>
+          </div>
+        `;
+
+        // Highlight in list
+        document.querySelectorAll('.task-item').forEach(el => el.classList.remove('active'));
+        document.querySelector('.task-item[data-id="' + id + '"]')?.classList.add('active');
+      }
+
+      // Start task
+      window.startTask = async function(id) {
+        await fetch('/tasks/' + id, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ status: 'w trakcie' })
+        });
+        Toast.success('Zlecenie rozpoczęte');
+        loadTasks();
+        showTaskDetail(id);
+      };
+
+      // Finish task
+      window.finishTask = async function(id) {
+        await fetch('/tasks/' + id, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ status: 'zakończony' })
+        });
+        Toast.success('Zlecenie zakończone');
+        loadTasks();
+        showTaskDetail(id);
+      };
+
+      // Edit task (simple prompt)
+      window.editTask = async function(id) {
+        const task = allTasks.find(t => t.id == id);
+        const newTitle = prompt('Tytuł:', task.title);
+        if (newTitle) {
+          await fetch('/tasks/' + id, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({ title: newTitle })
+          });
+          Toast.success('Zapisano');
+          loadTasks();
+          showTaskDetail(id);
+        }
+      };
+
+      // New task modal
+      document.getElementById('newTaskBtn').addEventListener('click', () => {
+        document.getElementById('createModal').classList.add('open');
+      });
+      document.getElementById('closeCreate').addEventListener('click', () => {
+        document.getElementById('createModal').classList.remove('open');
+      });
+
+      document.getElementById('createForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const body = {
+          title: fd.get('title'),
+          assigned_to: fd.get('assigned_to') || null,
+          status: fd.get('status'),
+          priority: fd.get('priority'),
+          address: fd.get('address') || null,
+          description: fd.get('description') || null
+        };
+        
+        const res = await fetch('/tasks', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body)
+        });
+        
+        if (res.ok) {
+          Toast.success('Zlecenie utworzone');
+          document.getElementById('createModal').classList.remove('open');
+          e.target.reset();
+          loadTasks();
+        } else {
+          Toast.error('Błąd tworzenia zlecenia');
+        }
+      });
+
+      // ============ CALENDAR ============
+      let calDate = new Date();
+      
+      function renderCalendar() {
+        const year = calDate.getFullYear();
+        const month = calDate.getMonth();
+        
+        document.getElementById('monthYear').textContent = 
+          calDate.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+        
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const today = new Date();
+        
+        let html = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Ni'].map(d => 
+          `<div class="day-label">${d}</div>`
+        ).join('');
+        
+        // Padding for first week
+        const startDay = firstDay === 0 ? 6 : firstDay - 1;
+        for (let i = 0; i < startDay; i++) {
+          const prevMonthDays = new Date(year, month, 0).getDate();
+          html += `<div class="day other-month">${prevMonthDays - startDay + i + 1}</div>`;
+        }
+        
+        // Days
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const hasTask = allTasks.some(t => t.created_at && t.created_at.startsWith(dateStr));
+          const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+          
+          html += `<div class="day${isToday ? ' today' : ''}${hasTask ? ' has-task' : ''}" onclick="filterByDate('${dateStr}')">${d}</div>`;
+        }
+        
+        document.getElementById('calendarGrid').innerHTML = html;
+      }
+
+      document.getElementById('prevMonth').addEventListener('click', () => {
+        calDate.setMonth(calDate.getMonth() - 1);
+        renderCalendar();
+      });
+      document.getElementById('nextMonth').addEventListener('click', () => {
+        calDate.setMonth(calDate.getMonth() + 1);
+        renderCalendar();
+      });
+
+      window.filterByDate = function(date) {
+        document.getElementById('taskSearch').value = date;
+        renderTasks();
+        calendarOpen = false;
+        document.getElementById('calendarPanel').classList.remove('open');
+      };
+
+      renderCalendar();
+    })();
+  </script>
 </body>
 </html>
