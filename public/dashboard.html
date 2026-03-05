@@ -9,17 +9,52 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
+  <!-- Top bar with logo -->
   <header class="topbar">
-    <h1>Service App</h1>
-    <nav class="menu">
-      <a href="/dashboard.html"><i class="fa fa-home"></i> Dashboard</a>
-      <a href="/create.html"><i class="fa fa-plus"></i> Nowe zlecenie</a>
-    </nav>
-    <div>
-      <span id="who" style="margin-right: 0.75rem;"></span>
-      <button id="logout">Wyloguj</button>
+    <div class="topbar-logo">
+      <i class="fa fa-wrench"></i> Service-App
     </div>
   </header>
+
+  <!-- Toggle button (outside sidebar) -->
+  <button class="sidebar-toggle" id="sidebarToggle" title="Menu">
+    <i class="fa fa-bars"></i>
+  </button>
+
+  <!-- Lewy panel menu -->
+  <nav class="left-sidebar collapsed" id="leftSidebar">
+    <div class="sidebar-content">
+      <div class="sidebar-user" id="sidebarUser">
+        <i class="fa fa-user-circle fa-2x"></i>
+        <span id="sidebarUserName"></span>
+      </div>
+      <a href="/dashboard.html" class="sidebar-link" id="menuDashboard">
+        <i class="fa fa-home"></i>
+        <span class="sidebar-text">Dashboard</span>
+      </a>
+      <a href="/create.html" class="sidebar-link" id="menuNewTask">
+        <i class="fa fa-plus"></i>
+        <span class="sidebar-text">Nowe zlecenie</span>
+      </a>
+      <div class="sidebar-spacer"></div>
+      <!-- Stoper -->
+      <div class="stopwatch-container">
+        <button class="stopwatch-btn" id="stopwatchBtn" onclick="toggleStopwatch()">
+          <i class="fa fa-clock-o"></i>
+          <span class="sidebar-text">Stoper</span>
+        </button>
+        <div class="stopwatch-display" id="stopwatchDisplay" style="display: none;">
+          <span id="stopwatchTime">00:00:00</span>
+          <button class="stopwatch-stop-btn" id="stopwatchStopBtn" onclick="stopStopwatch()" title="Zatrzymaj">■</button>
+        </div>
+      </div>
+      <!-- Wyloguj na dole -->
+      <button class="sidebar-link logout-link" id="logout">
+        <i class="fa fa-sign-out"></i>
+        <span class="sidebar-text">Wyloguj</span>
+      </button>
+    </div>
+  </nav>
 
   <main class="main">
     <!-- Lista zleceń -->
@@ -32,13 +67,20 @@
       </div>
       
       <div class="filters">
-        <input type="text" id="taskSearch" placeholder="Szukaj...">
+        <div class="search-wrapper">
+          <label for="taskSearch" class="visually-hidden">Szukaj</label>
+          <input type="text" id="taskSearch" placeholder="Szukaj..." autocomplete="off">
+          <button type="button" class="clear-search" id="clearSearch" title="Wyczyść">&times;</button>
+        </div>
+        <label for="statusFilter" class="visually-hidden">Status</label>
         <select id="statusFilter">
           <option value="">Status</option>
           <option value="utworzony">Utworzony</option>
           <option value="w trakcie">W trakcie</option>
+          <option value="feedback">Oczekiwanie</option>
           <option value="zakończony">Zakończony</option>
         </select>
+        <label for="priorityFilter" class="visually-hidden">Priorytet</label>
         <select id="priorityFilter">
           <option value="">Priorytet</option>
           <option value="high">Wysoki</option>
@@ -50,12 +92,12 @@
       <div id="tasksList" class="task-list"></div>
     </aside>
 
-    <!-- Szczegóły zlecenia -->
+      <!-- Szczegóły zlecenia -->
     <section class="content" id="contentArea">
       <div class="empty-state" id="emptyState">
         <h3>Witaj w Service App</h3>
-        <p>Wybierz zlecenie z listy lub utwórz nowe</p>
-        <button class="btn" style="margin-top: 1rem;" onclick="document.getElementById('newTaskBtn').click()">
+        <p>Wybierz zlecenie z listy</p>
+        <button class="btn" id="emptyNewTaskBtn" style="margin-top: 1rem; display: none;" onclick="document.getElementById('newTaskBtn').click()">
           <i class="fa fa-plus"></i> Utwórz zlecenie
         </button>
       </div>
@@ -75,7 +117,10 @@
       <button class="btn secondary" id="prevMonth" style="padding: 0.3rem 0.6rem;">
         <i class="fa fa-chevron-left"></i>
       </button>
-      <h3 id="monthYear"></h3>
+      <h3 id="monthYear" style="flex:1;text-align:center;"></h3>
+      <button class="btn secondary" id="closeCalendar" style="padding: 0.3rem 0.6rem;" title="Zamknij">
+        <i class="fa fa-times"></i>
+      </button>
       <button class="btn secondary" id="nextMonth" style="padding: 0.3rem 0.6rem;">
         <i class="fa fa-chevron-right"></i>
       </button>
@@ -85,33 +130,34 @@
 
   <!-- Modal nowego zlecenia -->
   <div class="modal" id="createModal">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
         <h3>Nowe zlecenie</h3>
         <button class="modal-close" id="closeCreate">&times;</button>
       </div>
       <form id="createForm">
         <div class="form-group">
-          <label>Tytuł *</label>
-          <input name="title" required placeholder="Tytuł zlecenia">
+          <label for="createTitle">Tytuł *</label>
+          <input id="createTitle" name="title" required placeholder="Tytuł zlecenia" autocomplete="off">
         </div>
         <div class="form-group">
-          <label>Przypisz do</label>
-          <input name="assigned_to" list="usersList" placeholder="Technik">
+          <label for="createAssignedTo">Przypisz do</label>
+          <input id="createAssignedTo" name="assigned_to" list="usersList" placeholder="Technik" autocomplete="off">
           <datalist id="usersList"></datalist>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
           <div class="form-group">
-            <label>Status</label>
-            <select name="status">
+            <label for="createStatus">Status</label>
+            <select id="createStatus" name="status">
               <option value="utworzony">Utworzony</option>
               <option value="w trakcie">W trakcie</option>
+              <option value="feedback">Oczekiwanie</option>
               <option value="zakończony">Zakończony</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Priorytet</label>
-            <select name="priority">
+            <label for="createPriority">Priorytet</label>
+            <select id="createPriority" name="priority">
               <option value="high">Wysoki</option>
               <option value="med" selected>Średni</option>
               <option value="low">Niski</option>
@@ -119,15 +165,146 @@
           </div>
         </div>
         <div class="form-group">
-          <label>Adres</label>
-          <input name="address" placeholder="Adres zlecenia">
+          <label for="createAddress">Adres</label>
+          <input id="createAddress" name="address" placeholder="Adres zlecenia" autocomplete="address-line1">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div class="form-group">
+            <label for="createLat">Szerokość geo.</label>
+            <input id="createLat" name="lat" placeholder="np. 52.2297" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="createLng">Długość geo.</label>
+            <input id="createLng" name="lng" placeholder="np. 21.0122" autocomplete="off">
+          </div>
+        </div>
+        <button type="button" class="btn secondary" style="width: 100%; margin-bottom: 1rem;" onclick="geocodeAddress('create')">📍 Pobierz lokalizację z adresu</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div class="form-group">
+            <label for="createStartTime">Planowane rozpoczęcie *</label>
+            <input id="createStartTime" name="start_time" type="datetime-local" autocomplete="off" required>
+          </div>
+          <div class="form-group">
+            <label for="createEndTime">Planowane zakończenie *</label>
+            <input id="createEndTime" name="end_time" type="datetime-local" autocomplete="off" required>
+          </div>
         </div>
         <div class="form-group">
-          <label>Opis</label>
-          <textarea name="description" rows="3" placeholder="Opis zlecenia..."></textarea>
+          <label for="createDescription">Opis</label>
+          <textarea id="createDescription" name="description" rows="3" placeholder="Opis zlecenia..."></textarea>
         </div>
         <button type="submit" class="btn" style="width: 100%;">Utwórz zlecenie</button>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal edycji zlecenia -->
+  <div class="modal" id="editModal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Edytuj zlecenie</h3>
+        <button class="modal-close" onclick="closeEditModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label for="editTitle">Tytuł *</label>
+        <input id="editTitle" required placeholder="Tytuł zlecenia" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="editAssignedTo">Przypisz do</label>
+        <input id="editAssignedTo" list="usersList" placeholder="Technik" autocomplete="off">
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <div class="form-group">
+          <label for="editStatus">Status</label>
+          <select id="editStatus">
+            <option value="utworzony">Utworzony</option>
+            <option value="w trakcie">W trakcie</option>
+            <option value="feedback">Oczekiwanie</option>
+            <option value="zakończony">Zakończony</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="editPriority">Priorytet</label>
+          <select id="editPriority">
+            <option value="high">Wysoki</option>
+            <option value="med">Średni</option>
+            <option value="low">Niski</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="editAddress">Adres</label>
+        <input id="editAddress" placeholder="Adres zlecenia" autocomplete="address-line1">
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <div class="form-group">
+          <label for="editLat">Szerokość geo.</label>
+          <input id="editLat" placeholder="np. 52.2297" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="editLng">Długość geo.</label>
+          <input id="editLng" placeholder="np. 21.0122" autocomplete="off">
+        </div>
+      </div>
+      <button type="button" class="btn secondary" style="width: 100%; margin-bottom: 1rem;" onclick="geocodeAddress('edit')">📍 Pobierz lokalizację z adresu</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <div class="form-group">
+          <label for="editStartTime">Planowane rozpoczęcie *</label>
+          <input id="editStartTime" type="datetime-local" autocomplete="off" required>
+        </div>
+        <div class="form-group">
+          <label for="editEndTime">Planowane zakończenie *</label>
+          <input id="editEndTime" type="datetime-local" autocomplete="off" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="editDescription">Opis</label>
+        <textarea id="editDescription" rows="3" placeholder="Opis zlecenia..."></textarea>
+      </div>
+      <button type="button" class="btn" style="width: 100%;" onclick="saveEditTask()">Zapisz zmiany</button>
+    </div>
+  </div>
+
+  <!-- Wizard zakończenia zlecenia -->
+  <div class="modal" id="wizardModal">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3>Zakończenie zlecenia</h3>
+        <button class="modal-close" onclick="closeWizard()">&times;</button>
+      </div>
+      <p style="margin-bottom: 1rem; color: var(--gray); font-size: 0.9rem;">Wypełnij dane zlecenia:</p>
+      
+      <div class="form-group">
+        <label for="wizardStartTime">Data i godzina rozpoczęcia pracy *</label>
+        <input id="wizardStartTime" type="datetime-local" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="wizardEndTime">Data i godzina zakończenia pracy *</label>
+        <input id="wizardEndTime" type="datetime-local" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="wizardEquipment">Zużyty sprzęt</label>
+        <input id="wizardEquipment" type="text" placeholder="np. Kabel HDMI, śruby, itp.">
+        <label style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+          <input type="checkbox" id="wizardNoEquipment"> Brak zużytego sprzętu
+        </label>
+      </div>
+      
+      <div class="form-group">
+        <label for="wizardComment">Komentarz serwisanta *</label>
+        <textarea id="wizardComment" rows="3" placeholder="Opisz wykonaną pracę..." required></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="wizardReassign">Przekaż zlecenie do:</label>
+        <select id="wizardReassign">
+          <option value="admin">Admin (domyślnie)</option>
+        </select>
+      </div>
+      
+      <button type="button" class="btn" style="width: 100%;" onclick="submitWizard()">Wyślij i zakończ</button>
     </div>
   </div>
 
@@ -144,10 +321,30 @@
       let currentTask = null;
       let calendarOpen = false;
 
+      // Sidebar toggle
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const leftSidebar = document.getElementById('leftSidebar');
+      const mainContent = document.querySelector('.main');
+      sidebarToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        leftSidebar.classList.toggle('collapsed');
+        const isCollapsed = leftSidebar.classList.contains('collapsed');
+        mainContent.style.marginLeft = isCollapsed ? '60px' : '200px';
+        sidebarToggle.style.left = isCollapsed ? '44px' : '200px';
+        // Toggle icon: hamburger when collapsed, arrow when open
+        const icon = sidebarToggle.querySelector('i');
+        icon.className = isCollapsed ? 'fa fa-bars' : 'fa fa-chevron-left';
+      });
+
       // Calendar toggle
       document.getElementById('calendarToggle').addEventListener('click', () => {
-        calendarOpen = !calendarOpen;
-        document.getElementById('calendarPanel').classList.toggle('open', calendarOpen);
+        calendarOpen = true;
+        document.getElementById('calendarPanel').classList.add('open');
+      });
+
+      document.getElementById('closeCalendar').addEventListener('click', () => {
+        calendarOpen = false;
+        document.getElementById('calendarPanel').classList.remove('open');
       });
 
       // Logout
@@ -156,18 +353,35 @@
         window.location.href = '/login.html';
       });
 
+      let currentUser = null;
+
       // Load user info
       fetch('/me', { headers }).then(r => r.json()).then(user => {
-        document.getElementById('who').textContent = user.username + ' (' + user.role + ')';
+        currentUser = user;
+        document.getElementById('sidebarUserName').textContent = user.username + ' (' + user.role + ')';
+        if (user.role !== 'admin') {
+          document.getElementById('newTaskBtn').style.display = 'none';
+          document.getElementById('emptyNewTaskBtn').style.display = 'none';
+          document.getElementById('menuNewTask').style.display = 'none';
+        }
       }).catch(() => window.location.href = '/login.html');
 
       // Load users for datalist
       fetch('/users', { headers }).then(r => r.json()).then(users => {
         const dl = document.getElementById('usersList');
+        const wizardReassign = document.getElementById('wizardReassign');
         users.forEach(u => {
           const opt = document.createElement('option');
           opt.value = u.username;
+          opt.textContent = u.username + ' (' + u.role + ')';
           dl.appendChild(opt);
+          
+          if (u.username !== 'admin') {
+            const opt2 = document.createElement('option');
+            opt2.value = u.username;
+            opt2.textContent = u.username;
+            wizardReassign.appendChild(opt2);
+          }
         });
       });
 
@@ -177,17 +391,25 @@
         const data = await res.json();
         allTasks = data.data || [];
         renderTasks();
+        renderCalendar();
       }
       loadTasks();
 
       // Render task list
       function renderTasks() {
-        const search = document.getElementById('taskSearch').value.toLowerCase();
+        const search = document.getElementById('taskSearch').value.trim();
+        const searchDate = search.match(/^\d{4}-\d{2}-\d{2}$/) ? search : null;
         const status = document.getElementById('statusFilter').value;
         const priority = document.getElementById('priorityFilter').value;
         
         let tasks = allTasks.filter(t => {
-          if (search && !t.title.toLowerCase().includes(search)) return false;
+          if (searchDate) {
+            const taskStart = t.start_time ? t.start_time.split('T')[0] : null;
+            const taskEnd = t.end_time ? t.end_time.split('T')[0] : null;
+            if (taskStart !== searchDate && taskEnd !== searchDate) return false;
+          } else if (search && !t.title.toLowerCase().includes(search.toLowerCase())) {
+            return false;
+          }
           if (status && t.status !== status) return false;
           if (priority && t.priority !== priority) return false;
           return true;
@@ -199,10 +421,24 @@
           return;
         }
 
+        const isAdmin = currentUser && currentUser.role === 'admin';
+        const getStatusClass = (status) => {
+          const map = {
+            'utworzony': 'status-new',
+            'w trakcie': 'status-progress',
+            'feedback': 'status-pending',
+            'zakończony': 'status-completed'
+          };
+          return map[status] || '';
+        };
         container.innerHTML = tasks.map(t => `
-          <div class="task-item" data-id="${t.id}">
-            <h4>${t.title}</h4>
+          <div class="task-item ${getStatusClass(t.status)}" data-id="${t.id}">
+            <div class="task-item-header">
+              <h4>${t.title}</h4>
+              ${isAdmin ? `<button class="btn-delete" onclick="event.stopPropagation(); deleteTask(${t.id})" title="Usuń"><i class="fa fa-trash"></i></button>` : ''}
+            </div>
             <p>${t.assigned_to || 'Nieprzypisane'} • ${t.status}</p>
+            <p class="task-estimate">📅 ${t.start_time ? new Date(t.start_time).toLocaleDateString('pl-PL') : '—'} → ${t.end_time ? new Date(t.end_time).toLocaleDateString('pl-PL') : '—'}</p>
             <span class="badge ${t.priority}">${t.priority === 'high' ? 'Wysoki' : t.priority === 'med' ? 'Średni' : 'Niski'}</span>
           </div>
         `).join('');
@@ -215,6 +451,11 @@
       document.getElementById('taskSearch').addEventListener('input', renderTasks);
       document.getElementById('statusFilter').addEventListener('change', renderTasks);
       document.getElementById('priorityFilter').addEventListener('change', renderTasks);
+      
+      document.getElementById('clearSearch').addEventListener('click', () => {
+        document.getElementById('taskSearch').value = '';
+        renderTasks();
+      });
 
       // Show task detail
       async function showTaskDetail(id) {
@@ -226,13 +467,16 @@
         const detail = document.getElementById('taskDetail');
         detail.style.display = 'block';
         
+        const isAdmin = currentUser && currentUser.role === 'admin';
         detail.innerHTML = `
           <div class="task-detail">
             <div class="content-header">
               <h2>${task.title}</h2>
+              ${isAdmin ? `
               <button class="btn" onclick="window.location.href='/create.html'">
                 <i class="fa fa-plus"></i> Nowe
               </button>
+              ` : ''}
             </div>
             
             <div class="detail-row">
@@ -259,18 +503,38 @@
               <span class="detail-label">Utworzono:</span>
               <span>${new Date(task.created_at).toLocaleString('pl-PL')}</span>
             </div>
+            <div class="detail-row">
+              <span class="detail-label">Esytmata:</span>
+              <span>${task.start_time ? new Date(task.start_time).toLocaleString('pl-PL') : '—'} → ${task.end_time ? new Date(task.end_time).toLocaleString('pl-PL') : '—'}</span>
+            </div>
+            ${task.lat && task.lng ? `
+            <div class="detail-row">
+              <span class="detail-label">Lokalizacja:</span>
+              <span>${task.lat}, ${task.lng}</span>
+            </div>
+            <div id="taskMap" style="height: 200px; margin-top: 0.5rem; border-radius: 4px;"></div>
+            ` : ''}
+            
+            ${!isAdmin && (currentUser.username === task.assigned_to || !task.assigned_to) ? `
+            <hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">
+            <p class="muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">Po wykonaniu pracy kliknij "Zakończ" i wypełnij formularz zlecenia.</p>
+            ` : ''}
             
             <div class="actions">
+              ${!isAdmin && (currentUser.username === task.assigned_to || !task.assigned_to) ? `
               <button class="btn" onclick="startTask(${task.id})">
                 <i class="fa fa-play"></i> Rozpocznij
               </button>
               <button class="btn" onclick="finishTask(${task.id})">
                 <i class="fa fa-check"></i> Zakończ
               </button>
+              ` : ''}
+              ${isAdmin ? `
               <button class="btn secondary" onclick="editTask(${task.id})">
                 <i class="fa fa-edit"></i> Edytuj
               </button>
-              <button class="btn" style="background:#27ae60;" onclick="window.open('/tasks/${task.id}/pdf','_blank')">
+              ` : ''}
+              <button class="btn" style="background:#27ae60;" onclick="generatePdf(${task.id})">
                 <i class="fa fa-file-pdf"></i> PDF
               </button>
             </div>
@@ -280,6 +544,20 @@
         // Highlight in list
         document.querySelectorAll('.task-item').forEach(el => el.classList.remove('active'));
         document.querySelector('.task-item[data-id="' + id + '"]')?.classList.add('active');
+
+        // Initialize map if coordinates exist
+        if (task.lat && task.lng) {
+          setTimeout(() => {
+            const mapEl = document.getElementById('taskMap');
+            if (mapEl && !mapEl._leaflet_id) {
+              const map = L.map('taskMap').setView([task.lat, task.lng], 13);
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+              }).addTo(map);
+              L.marker([task.lat, task.lng]).addTo(map);
+            }
+          }, 100);
+        }
       }
 
       // Start task
@@ -294,31 +572,202 @@
         showTaskDetail(id);
       };
 
-      // Finish task
-      window.finishTask = async function(id) {
-        await fetch('/tasks/' + id, {
+      // Save user work (non-admin)
+      window.saveUserWork = async function(id) {
+        const actual_start = document.getElementById('userStartTime').value || null;
+        const actual_end = document.getElementById('userEndTime').value || null;
+        const repair_short = document.getElementById('userRepairShort').value || null;
+        
+        const res = await fetch('/tasks/' + id, {
           method: 'PUT',
           headers,
-          body: JSON.stringify({ status: 'zakończony' })
+          body: JSON.stringify({ actual_start, actual_end, repair_short })
         });
-        Toast.success('Zlecenie zakończone');
-        loadTasks();
-        showTaskDetail(id);
-      };
-
-      // Edit task (simple prompt)
-      window.editTask = async function(id) {
-        const task = allTasks.find(t => t.id == id);
-        const newTitle = prompt('Tytuł:', task.title);
-        if (newTitle) {
-          await fetch('/tasks/' + id, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({ title: newTitle })
-          });
-          Toast.success('Zapisano');
+        
+        if (res.ok) {
+          Toast.success('Praca zapisana');
           loadTasks();
           showTaskDetail(id);
+        } else {
+          Toast.error('Błąd zapisu');
+        }
+      };
+
+      // Finish task - open wizard modal
+      window.finishTask = async function(id) {
+        const task = allTasks.find(t => t.id == id);
+        const wizardModal = document.getElementById('wizardModal');
+        
+        // Reset wizard form
+        document.getElementById('wizardStartTime').value = '';
+        document.getElementById('wizardEndTime').value = '';
+        document.getElementById('wizardEquipment').value = '';
+        document.getElementById('wizardNoEquipment').checked = false;
+        document.getElementById('wizardComment').value = '';
+        
+        // Show modal
+        wizardModal.classList.add('open');
+        wizardModal.dataset.taskId = id;
+      };
+
+      // Close wizard
+      window.closeWizard = function() {
+        document.getElementById('wizardModal').classList.remove('open');
+      };
+
+      // Submit wizard
+      window.submitWizard = async function() {
+        const wizardModal = document.getElementById('wizardModal');
+        const id = wizardModal.dataset.taskId;
+        
+        const actual_start = document.getElementById('wizardStartTime').value;
+        const actual_end = document.getElementById('wizardEndTime').value;
+        const equipment = document.getElementById('wizardNoEquipment').checked ? 'Brak' : document.getElementById('wizardEquipment').value;
+        const repair_short = document.getElementById('wizardComment').value;
+        const reassign_to = document.getElementById('wizardReassign').value || 'admin';
+        
+        if (!actual_start || !actual_end) {
+          Toast.error('Podaj datę i czas rozpoczęcia oraz zakończenia');
+          return;
+        }
+        
+        if (!repair_short) {
+          Toast.error('Wpisz komentarz o wykonanej pracy');
+          return;
+        }
+        
+        try {
+          const res = await fetch('/tasks/' + id, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              status: 'zakończony',
+              actual_start: actual_start,
+              actual_end: actual_end,
+              repair_short: (equipment !== 'Brak' ? 'Zużyty sprzęt: ' + equipment + '\n' : '') + 'Komentarz: ' + repair_short,
+              assigned_to: reassign_to
+            })
+          });
+          
+          if (res.ok) {
+            Toast.success('Zlecenie zakończone i przekazane do ' + reassign_to);
+            wizardModal.classList.remove('open');
+            loadTasks();
+            document.getElementById('taskDetail').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+          } else {
+            const err = await res.json();
+            Toast.error(err.error || 'Błąd zakończenia');
+          }
+        } catch (e) {
+          Toast.error('Błąd połączenia');
+        }
+      };
+
+      // Edit task (full form)
+      let editTaskId = null;
+      
+      window.editTask = async function(id) {
+        const task = allTasks.find(t => t.id == id);
+        editTaskId = id;
+        
+        document.getElementById('editTitle').value = task.title || '';
+        document.getElementById('editDescription').value = task.description || '';
+        document.getElementById('editAssignedTo').value = task.assigned_to || '';
+        document.getElementById('editStatus').value = task.status || 'utworzony';
+        document.getElementById('editPriority').value = task.priority || 'med';
+        document.getElementById('editAddress').value = task.address || '';
+        document.getElementById('editLat').value = task.lat || '';
+        document.getElementById('editLng').value = task.lng || '';
+        document.getElementById('editStartTime').value = task.start_time ? task.start_time.slice(0, 16) : '';
+        document.getElementById('editEndTime').value = task.end_time ? task.end_time.slice(0, 16) : '';
+        
+        document.getElementById('editModal').classList.add('open');
+      };
+
+      // Geocode address using Nominatim
+      window.geocodeAddress = async function(prefix) {
+        const addressEl = document.getElementById(prefix + 'Address');
+        const latEl = document.getElementById(prefix + 'Lat');
+        const lngEl = document.getElementById(prefix + 'Lng');
+        
+        const address = addressEl.value;
+        if (!address) {
+          Toast.warning('Wpisz adres najpierw');
+          return;
+        }
+        
+        Toast.info('Szukam lokalizacji...');
+        
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ', Polska')}`);
+          const data = await res.json();
+          
+          if (data && data.length > 0) {
+            latEl.value = data[0].lat;
+            lngEl.value = data[0].lon;
+            Toast.success('Lokalizacja znaleziona!');
+          } else {
+            Toast.warning('Nie znaleziono lokalizacji');
+          }
+        } catch (e) {
+          Toast.error('Błąd geokodowania');
+        }
+      };
+
+      window.saveEditTask = async function() {
+        if (!editTaskId) return;
+        
+        const body = {
+          title: document.getElementById('editTitle').value,
+          description: document.getElementById('editDescription').value,
+          assigned_to: document.getElementById('editAssignedTo').value || null,
+          status: document.getElementById('editStatus').value,
+          priority: document.getElementById('editPriority').value,
+          address: document.getElementById('editAddress').value || null,
+          lat: document.getElementById('editLat').value || null,
+          lng: document.getElementById('editLng').value || null,
+          start_time: document.getElementById('editStartTime').value || null,
+          end_time: document.getElementById('editEndTime').value || null
+        };
+        
+        const res = await fetch('/tasks/' + editTaskId, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(body)
+        });
+        
+        if (res.ok) {
+          Toast.success('Zlecenie zaktualizowane');
+          document.getElementById('editModal').classList.remove('open');
+          loadTasks();
+          showTaskDetail(editTaskId);
+        } else {
+          Toast.error('Błąd aktualizacji');
+        }
+      };
+
+      window.closeEditModal = function() {
+        document.getElementById('editModal').classList.remove('open');
+        editTaskId = null;
+      };
+
+      // Delete task
+      window.deleteTask = async function(id) {
+        if (!confirm('Czy na pewno chcesz usunąć to zlecenie?')) return;
+        
+        const res = await fetch('/tasks/' + id, {
+          method: 'DELETE',
+          headers
+        });
+        
+        if (res.ok) {
+          Toast.success('Zlecenie usunięte');
+          document.getElementById('taskDetail').style.display = 'none';
+          document.getElementById('emptyState').style.display = 'block';
+          loadTasks();
+        } else {
+          Toast.error('Błąd usuwania');
         }
       };
 
@@ -339,7 +788,11 @@
           status: fd.get('status'),
           priority: fd.get('priority'),
           address: fd.get('address') || null,
-          description: fd.get('description') || null
+          lat: fd.get('lat') || null,
+          lng: fd.get('lng') || null,
+          description: fd.get('description') || null,
+          start_time: fd.get('start_time') || null,
+          end_time: fd.get('end_time') || null
         };
         
         const res = await fetch('/tasks', {
@@ -357,6 +810,27 @@
           Toast.error('Błąd tworzenia zlecenia');
         }
       });
+
+      // Generate PDF with auth
+      window.generatePdf = async function(id) {
+        try {
+          Toast.info('Generowanie PDF...');
+          const res = await fetch('/tasks/' + id + '/pdf', { headers });
+          if (!res.ok) throw new Error('Błąd');
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `zlecenie-${id}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          Toast.success('PDF pobrany');
+        } catch (e) {
+          Toast.error('Błąd PDF: ' + e.message);
+        }
+      };
 
       // ============ CALENDAR ============
       let calDate = new Date();
@@ -386,10 +860,24 @@
         // Days
         for (let d = 1; d <= daysInMonth; d++) {
           const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-          const hasTask = allTasks.some(t => t.created_at && t.created_at.startsWith(dateStr));
+          const dateObj = new Date(year, month, d);
+          const tasksOnDate = allTasks.filter(t => {
+            const start = t.start_time ? t.start_time.split('T')[0] : null;
+            const end = t.end_time ? t.end_time.split('T')[0] : null;
+            return start === dateStr || end === dateStr;
+          });
+          const isDelayed = tasksOnDate.some(t => {
+            if (t.status === 'zakończony') return false;
+            if (!t.end_time) return false;
+            const endDate = new Date(t.end_time);
+            const twoDaysAgo = new Date();
+            twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+            return endDate < twoDaysAgo || (endDate.toDateString() === dateObj.toDateString() && endDate < new Date());
+          });
+          const hasTask = tasksOnDate.length > 0;
           const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
           
-          html += `<div class="day${isToday ? ' today' : ''}${hasTask ? ' has-task' : ''}" onclick="filterByDate('${dateStr}')">${d}</div>`;
+          html += `<div class="day${isToday ? ' today' : ''}${hasTask ? ' has-task' : ''}${isDelayed ? ' delayed' : ''}" onclick="filterByDate('${dateStr}')">${d}${hasTask ? `<span class="task-count">${tasksOnDate.length}</span>` : ''}</div>`;
         }
         
         document.getElementById('calendarGrid').innerHTML = html;
@@ -412,6 +900,106 @@
       };
 
       renderCalendar();
+
+      // ============ STOPWATCH ============
+      let stopwatchInterval = null;
+      let stopwatchStartTime = null;
+      let stopwatchTaskId = null;
+
+      window.toggleStopwatch = async function() {
+        if (stopwatchInterval) {
+          // Stop the stopwatch
+          stopStopwatch();
+        } else {
+          // Start - show task selection
+          if (allTasks.length === 0) {
+            Toast.warning('Brak dostępnych zleceń');
+            return;
+          }
+          
+          // Filter for active tasks (not completed)
+          const activeTasks = allTasks.filter(t => t.status !== 'zakończony');
+          
+          if (activeTasks.length === 0) {
+            Toast.warning('Brak aktywnych zleceń');
+            return;
+          }
+          
+          // Create a simple prompt with task list
+          const taskList = activeTasks.map(t => `#${t.id} - ${t.title}`).join('\n');
+          const choice = prompt('Wybierz zlecenie (podaj ID):\n\n' + taskList);
+          
+          if (!choice) return;
+          
+          const selectedTask = activeTasks.find(t => t.id == choice.trim());
+          if (!selectedTask) {
+            Toast.error('Nie znaleziono zlecenia');
+            return;
+          }
+          
+          // Start the stopwatch
+          stopwatchTaskId = selectedTask.id;
+          stopwatchStartTime = Date.now();
+          
+          document.getElementById('stopwatchDisplay').style.display = 'flex';
+          document.getElementById('stopwatchTime').textContent = '00:00:00';
+          
+          stopwatchInterval = setInterval(() => {
+            const elapsed = Date.now() - stopwatchStartTime;
+            const hours = Math.floor(elapsed / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            document.getElementById('stopwatchTime').textContent = 
+              `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+          }, 1000);
+          
+          Toast.success('Stoper uruchomiony dla zlecenia #' + stopwatchTaskId);
+        }
+      };
+
+      window.stopStopwatch = async function() {
+        if (!stopwatchInterval) return;
+        
+        clearInterval(stopwatchInterval);
+        stopwatchInterval = null;
+        
+        const elapsed = Date.now() - stopwatchStartTime;
+        const seconds = Math.floor(elapsed / 1000);
+        
+        document.getElementById('stopwatchDisplay').style.display = 'none';
+        
+        if (!stopwatchTaskId) {
+          Toast.error('Brak przypisanego zlecenia');
+          return;
+        }
+        
+        // Save the time to the task
+        try {
+          const task = allTasks.find(t => t.id == stopwatchTaskId);
+          const currentRepairShort = task?.repair_short || '';
+          
+          const timeStr = `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m ${seconds % 60}s`;
+          const newRepairShort = currentRepairShort + '\n[Czas pracy: ' + timeStr + ']';
+          
+          const res = await fetch('/tasks/' + stopwatchTaskId, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({ repair_short: newRepairShort })
+          });
+          
+          if (res.ok) {
+            Toast.success('Czas pracy zapisany: ' + timeStr);
+            loadTasks();
+          } else {
+            Toast.error('Błąd zapisu czasu');
+          }
+        } catch (e) {
+          Toast.error('Błąd: ' + e.message);
+        }
+        
+        stopwatchTaskId = null;
+        stopwatchStartTime = null;
+      };
     })();
   </script>
 </body>
